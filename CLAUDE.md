@@ -1,0 +1,204 @@
+# CLAUDE.md
+
+이 파일은 Claude Code / Claude AI가 프로젝트를 이해하기 위한 진입점 문서입니다.
+코드 작성 전 반드시 이 문서와 `docs/pages.md` 를 참조하세요.
+
+---
+
+## 프로젝트 개요
+
+**ns-creative-studio-fo** — 이미지 생성형 AI용 프롬프트 자동 생성 서비스의 프론트엔드
+
+사용자가 **상품 카테고리(어떤 상품)** 와 **이미지 스타일 태그(어떻게 보일지)** 를 선택하면,
+백엔드(ns-creative-studio-bo)를 통해 Gemini API가 최적화된 **영문 이미지 생성 프롬프트**를 자동 생성한다.
+생성된 프롬프트를 복사하여 이미지 생성 AI(nanobanana, Midjourney 등)에 직접 사용한다.
+
+> 이 프로젝트는 UI 레이어만 담당한다. 실제 프롬프트 생성 로직과 DB는 백엔드(ns-creative-studio-bo) 담당.
+
+---
+
+## 기술 스택
+
+| 항목 | 내용 |
+|------|------|
+| Framework | Vue 3.4 (Composition API, `<script setup>`) |
+| Build | Vite 5.2 |
+| UI 라이브러리 | Vuetify 3.5 (`autoImport: true`) |
+| 상태 관리 | Pinia 2.1 |
+| 라우터 | Vue Router 4.3 |
+| HTTP 클라이언트 | Axios 1.6 |
+| 아이콘 | Material Design Icons (`@mdi/font`) |
+
+---
+
+## 실행
+
+```bash
+# 의존성 설치
+npm install
+
+# 개발 서버 (포트 3000, /api → localhost:8080 프록시)
+npm run dev
+
+# 빌드
+npm run build
+```
+
+> ⚠️ 백엔드(ns-creative-studio-bo)가 8080 포트에서 실행 중이어야 API 연동 가능.
+> 백엔드 Step 4(JWT 인증)가 완료되어야 실제 로그인 연동 가능.
+
+---
+
+## 소스 구조
+
+```
+src/
+├── api/
+│   └── index.js          # Axios 인스턴스 + 인터셉터 (JWT 주입, 401 처리)
+├── assets/
+│   └── styles/
+│       └── main.css
+├── components/
+│   └── common/
+│       └── PageTitle.vue
+├── layouts/
+│   ├── DefaultLayout.vue  # 로그인 후 공통 레이아웃 (사이드바/헤더 포함 예정)
+│   └── AuthLayout.vue     # 로그인 전 레이아웃
+├── plugins/
+│   └── vuetify.js
+├── router/
+│   └── index.js           # 라우트 정의 + 인증 가드
+├── stores/
+│   └── auth.js            # 인증 상태 (token, user, login/logout)
+├── views/
+│   ├── HomeView.vue
+│   ├── LoginView.vue
+│   └── (추가 예정 — docs/pages.md 참조)
+├── App.vue
+└── main.js
+```
+
+---
+
+## 핵심 도메인 개념
+
+### 권한(Role) — 계층 구조
+```
+ADMIN > MANAGER > USER
+```
+| Role | 접근 가능 화면 |
+|------|--------------|
+| `ADMIN` | 전체 화면 |
+| `MANAGER` | 프롬프트 생성/이력 + 카테고리·태그 관리 |
+| `USER` | 프롬프트 생성, 같은 팀 이력 조회 |
+
+- 회원가입 없음. ADMIN이 백엔드 API로 직접 계정 생성
+- 로그인 후 `localStorage`의 `user` 객체에서 `role` 확인하여 UI 분기
+
+### 카테고리 vs 태그 — 완전히 다른 개념
+
+**카테고리** (어떤 상품을 이미지로 만들지)
+- 4단계 계층: LCS(대) > MCS(중) > SCS(소) > DCS(세분류)
+- 단계별 드릴다운 UI — `GET /api/categories?parentId=` 를 단계별로 호출
+- 사용자는 **DCS를 최종 선택**해야 프롬프트 생성 가능
+
+**태그** (이미지 스타일/분위기)
+- TagGroup → Tag 구조
+- `is_multi_select = false` → 그룹 내 단일 선택 (라디오 동작)
+- `is_multi_select = true` → 그룹 내 복수 선택 (체크박스 동작)
+- ex: `인물(단일) → 남자/여자`, `분위기(복수) → 화사한/추운/따뜻한`
+
+### 프롬프트 생성 흐름 (UI 관점)
+```
+카테고리 드릴다운(DCS 선택) + 태그 칩 선택
+  → POST /api/prompts
+  → 영문 프롬프트 텍스트 반환
+  → 결과 표시 + 클립보드 복사
+```
+
+---
+
+## API 연동 규칙
+
+### 백엔드 공통 응답 형식
+```json
+{ "code": 200, "message": "OK", "data": { ... } }
+```
+- 성공은 항상 HTTP 200
+- 실제 데이터는 `response.data.data` 에 있음
+
+### Axios 인스턴스 사용 규칙
+- **항상 `@/api`의 인스턴스** 사용 (baseURL `/api`, JWT 인터셉터 포함)
+- `axios` 직접 import 금지
+
+```javascript
+// ✅ 올바른 방식
+import api from '@/api'
+const res = await api.get('/categories')
+const categories = res.data.data
+
+// ❌ 금지
+import axios from 'axios'
+axios.get('http://localhost:8080/api/categories')
+```
+
+### 인증 (JWT)
+- JWT Access Token → `localStorage.setItem('token', ...)`
+- 요청 인터셉터에서 자동으로 `Authorization: Bearer {token}` 헤더 주입
+- 401 응답 시 자동으로 `localStorage` 초기화 + `/auth/login` 리다이렉트
+- Refresh Token 없음 (만료 시 재로그인)
+
+---
+
+## 화면 목록 (요약)
+
+| 경로 | 화면 | 권한 | 상태 |
+|------|------|------|------|
+| `/auth/login` | 로그인 | 공통 | ✅ 구현됨 |
+| `/` | 대시보드 | 공통 | 🟡 틀만 |
+| `/prompt/new` | 프롬프트 생성 | 공통 | ❌ 미구현 |
+| `/prompt/history` | 프롬프트 이력 | 공통 | ❌ 미구현 |
+| `/manage/categories` | 카테고리 관리 | MANAGER+ | ❌ 미구현 |
+| `/manage/tags` | 태그 관리 | MANAGER+ | ❌ 미구현 |
+| `/manage/users` | 사용자 관리 | ADMIN | ❌ 미구현 |
+
+> 화면 상세 스펙: [`docs/pages.md`](docs/pages.md)
+
+---
+
+## 코딩 컨벤션 핵심 규칙
+
+> 세부 규칙 전체는 `.cursor/rules/coding-convention.mdc` 참조
+
+### SFC 작성 순서
+```vue
+<script setup> ... </script>
+<template> ... </template>
+<style scoped> ... </style>
+```
+
+### 상태 관리 (Pinia)
+- 전역 상태는 `src/stores/` 에 Pinia store로 관리
+- store 내부는 Composition API 스타일 (`defineStore` + setup 함수)
+
+### API 호출 위치
+- API 호출은 **view 또는 store 내부**에서만 수행
+- 컴포넌트(components/)에서 직접 API 호출 금지
+
+### 파일 네이밍
+| 대상 | 규칙 | 예시 |
+|------|------|------|
+| View | PascalCase + `View` suffix | `PromptNewView.vue` |
+| Component | PascalCase | `CategorySelector.vue` |
+| Store | camelCase + `use` prefix | `useAuthStore` |
+| API 모듈 | camelCase | `promptApi.js` |
+
+---
+
+## 참고 문서
+
+- 화면 설계: [`docs/pages.md`](docs/pages.md)
+- 개발 진행 현황: [`docs/todo.md`](docs/todo.md)
+- 코딩 컨벤션 전체: [`.cursor/rules/coding-convention.mdc`](.cursor/rules/coding-convention.mdc)
+- 백엔드 API 명세: Swagger UI `http://localhost:8080/swagger-ui/index.html`
+- 백엔드 요구사항: `ns-creative-studio-bo/docs/requirements.md`

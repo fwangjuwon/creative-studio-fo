@@ -1,0 +1,236 @@
+---
+description: 코딩 컨벤션 및 아키텍처 규칙. 코드 생성 시 항상 준수.
+globs:
+alwaysApply: true
+---
+
+# 코딩 컨벤션
+
+## 기술 스택
+
+- Vue 3.4, Composition API (`<script setup>` 전용)
+- Vite 5.2
+- Vuetify 3.5 (`autoImport: true` — 컴포넌트 import 불필요)
+- Pinia 2.1 (상태 관리)
+- Vue Router 4.3
+- Axios 1.6
+
+---
+
+## SFC 작성 순서
+
+모든 `.vue` 파일은 반드시 아래 순서로 작성한다.
+
+```vue
+<script setup>
+// 1. import
+// 2. store / composable
+// 3. props / emits
+// 4. reactive state
+// 5. computed
+// 6. methods
+// 7. lifecycle hooks
+</script>
+
+<template>
+  <!-- 템플릿 -->
+</template>
+
+<style scoped>
+/* 스타일 */
+</style>
+```
+
+- `<script setup>` 만 사용. Options API / `export default {}` 사용 금지
+- `<style>`은 반드시 `scoped` 적용
+
+---
+
+## 디렉토리 구조
+
+```
+src/
+├── api/           # Axios 인스턴스 및 도메인별 API 함수
+├── assets/        # 정적 자산 (이미지, 글로벌 CSS)
+├── components/    # 재사용 가능한 컴포넌트
+│   └── common/    # 공통 컴포넌트
+├── layouts/       # 레이아웃 컴포넌트 (DefaultLayout, AuthLayout)
+├── plugins/       # Vuetify 등 플러그인 설정
+├── router/        # Vue Router 설정
+├── stores/        # Pinia 스토어
+└── views/         # 페이지 컴포넌트 (라우트와 1:1 매핑)
+    ├── prompt/
+    └── manage/
+```
+
+---
+
+## 파일 네이밍
+
+| 대상 | 규칙 | 예시 |
+|------|------|------|
+| View (pages) | PascalCase + `View` suffix | `PromptNewView.vue`, `UserView.vue` |
+| Component | PascalCase | `CategorySelector.vue`, `TagChipGroup.vue` |
+| Layout | PascalCase + `Layout` suffix | `DefaultLayout.vue` |
+| Store | camelCase 파일명, `use` prefix 함수명 | `auth.js` → `useAuthStore` |
+| API 모듈 | camelCase | `promptApi.js`, `categoryApi.js` |
+
+---
+
+## Pinia Store 패턴
+
+store는 반드시 **Composition API 스타일** (`defineStore` + setup 함수)로 작성한다.
+
+```javascript
+// ✅ 올바른 방식 — Composition API 스타일
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+
+export const useAuthStore = defineStore('auth', () => {
+  const token = ref(null)
+  const user = ref(null)
+
+  const isAuthenticated = computed(() => !!token.value)
+
+  function logout() {
+    token.value = null
+    user.value = null
+  }
+
+  return { token, user, isAuthenticated, logout }
+})
+
+// ❌ 금지 — Options API 스타일
+export const useAuthStore = defineStore('auth', {
+  state: () => ({ token: null }),
+  getters: { ... },
+  actions: { ... }
+})
+```
+
+---
+
+## API 호출 규칙
+
+### Axios 인스턴스 사용
+항상 `@/api`의 인스턴스를 사용한다. `axios` 직접 import 금지.
+
+```javascript
+// ✅ 올바른 방식
+import api from '@/api'
+const res = await api.get('/categories')
+const data = res.data.data  // 백엔드 응답: { code, message, data }
+
+// ❌ 금지
+import axios from 'axios'
+```
+
+### API 호출 위치
+- **view 파일** 또는 **store** 내부에서만 API 호출
+- `components/` 에서 직접 API 호출 금지
+
+### 백엔드 응답 구조
+```javascript
+// 백엔드 공통 응답: { code: 200, message: "OK", data: {...} }
+// 실제 데이터 접근 방법:
+const res = await api.post('/prompts', payload)
+const promptText = res.data.data.promptText
+```
+
+---
+
+## 라우터 규칙
+
+### 역할 기반 접근 제어
+라우트 `meta.roles` 배열로 접근 가능한 역할을 명시한다.
+
+```javascript
+{
+  path: 'manage/categories',
+  name: 'manage-categories',
+  component: () => import('@/views/manage/CategoryView.vue'),
+  meta: { requiresAuth: true, roles: ['MANAGER', 'ADMIN'] }
+}
+```
+
+### 라우트 가드
+- `meta.requiresAuth: true` → 미로그인 시 `/auth/login` 리다이렉트
+- `meta.roles` 배열 존재 시 → `user.role` 이 포함되지 않으면 `/` 리다이렉트
+
+### 라우트 네이밍
+kebab-case 사용.
+
+```javascript
+// ✅
+name: 'prompt-new'
+name: 'manage-categories'
+
+// ❌
+name: 'promptNew'
+name: 'ManageCategories'
+```
+
+---
+
+## 컴포넌트 규칙
+
+### Props / Emits 정의
+`defineProps`, `defineEmits` 사용. 타입 명시 필수.
+
+```javascript
+// ✅ 타입 명시
+const props = defineProps({
+  categoryId: { type: Number, required: true },
+  label: { type: String, default: '' }
+})
+
+const emit = defineEmits(['update:modelValue', 'change'])
+```
+
+### v-model 패턴
+커스텀 컴포넌트의 양방향 바인딩은 `modelValue` prop + `update:modelValue` emit 사용.
+
+```javascript
+const props = defineProps({ modelValue: { type: Array, default: () => [] } })
+const emit = defineEmits(['update:modelValue'])
+```
+
+---
+
+## 네이밍 컨벤션
+
+| 대상 | 규칙 | 예시 |
+|------|------|------|
+| 변수/함수 | camelCase | `categoryList`, `fetchCategories` |
+| 상수 | UPPER_SNAKE_CASE | `MAX_RETRY_COUNT` |
+| CSS 클래스 | kebab-case | `prompt-result-box` |
+| 이벤트 핸들러 | `on` + PascalCase | `onCategorySelect`, `onSubmit` |
+| ref 변수 | 의미 있는 이름 + 필요 시 접미사 | `isLoading`, `promptText` |
+
+---
+
+## Vuetify 사용 규칙
+
+- `autoImport: true` 설정으로 `v-btn`, `v-card` 등 **import 문 작성 불필요**
+- 아이콘은 `@mdi/font` 사용 — `mdi-` prefix 형식: `mdi-content-copy`
+- 레이아웃은 `v-app` > `v-navigation-drawer` / `v-app-bar` > `v-main` 구조 사용
+
+---
+
+## 금지 패턴
+
+```javascript
+// ❌ Options API 사용 금지
+export default {
+  data() { return {} },
+  methods: { ... }
+}
+
+// ❌ axios 직접 import 금지
+import axios from 'axios'
+
+// ❌ components/ 에서 직접 API 호출 금지
+
+// ❌ style scoped 누락 금지
+<style>  /* scoped 없음 — 전역 오염 위험 */
+```

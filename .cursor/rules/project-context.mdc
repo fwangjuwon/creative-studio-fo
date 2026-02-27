@@ -1,0 +1,101 @@
+---
+description: 프로젝트 도메인 컨텍스트. 코드 생성 시 항상 참조.
+globs:
+alwaysApply: true
+---
+
+# 프로젝트 컨텍스트
+
+## 서비스 한 줄 요약
+
+이미지 생성형 AI(nanobanana, Midjourney 등)에 전달할 **영문 이미지 생성 프롬프트**를 자동 생성해주는 서비스의 프론트엔드.
+사용자가 카테고리(상품군)와 태그(이미지 스타일)를 선택 → 백엔드 API → Gemini → 영문 프롬프트 반환.
+
+> 이 프로젝트는 UI 레이어만 담당. 프롬프트 생성 로직과 DB는 백엔드(ns-creative-studio-bo) 담당.
+
+---
+
+## 권한(Role) 구조
+
+```
+ADMIN > MANAGER > USER  (계층 구조, 한 유저는 하나의 Role만 가짐)
+```
+
+| Role | 주요 접근 범위 |
+|------|--------------|
+| `ADMIN` | 전체 화면 |
+| `MANAGER` | USER 권한 + 카테고리·태그 관리 화면 |
+| `USER` | 프롬프트 생성, 같은 팀 이력 조회 |
+
+- 회원가입 없음. ADMIN이 백엔드 API로 직접 계정 생성 (Closed)
+- 로그인 후 `localStorage`의 `user.role` 로 UI 분기
+
+---
+
+## 카테고리 vs 태그 — 완전히 다른 개념
+
+### 카테고리 (상품군 — 어떤 상품을 이미지로 만들지)
+- 4단계 계층: `LCS(대분류) > MCS(중분류) > SCS(소분류) > DCS(세분류)`
+- 단계별 드릴다운 UI — `GET /api/categories?parentId=` 단계마다 호출
+- 사용자는 **DCS를 최종 선택**해야 프롬프트 생성 가능
+- ex: `식품 > 건강식품 > 약재 > 인삼`
+
+### 태그 (이미지 스타일 — 어떻게 보일지)
+- `TagGroup → Tag` 구조
+- `is_multi_select = false` → 그룹 내 단일 선택 (라디오 동작)
+- `is_multi_select = true` → 그룹 내 복수 선택 (체크박스 동작)
+- ex: `인물(단일) → 남자/여자`, `분위기(복수) → 화사한/추운/따뜻한`
+
+---
+
+## 프롬프트 생성 흐름 (UI 관점)
+
+```
+카테고리 드릴다운(DCS 최종 선택)
+  + 태그 칩 선택(그룹별 단일/복수)
+  → POST /api/prompts { categoryId, tagIds[] }
+  → 영문 프롬프트 텍스트 반환
+  → 결과 표시 + 클립보드 복사 버튼
+```
+
+---
+
+## 프롬프트 이력 조회 권한
+
+| Role | 조회 범위 |
+|------|---------|
+| `USER` | 같은 `team_name` 유저들의 프롬프트 (팀 미배정 시 빈 목록) |
+| `MANAGER` | 전체 |
+| `ADMIN` | 전체 |
+
+---
+
+## 백엔드 API 응답 형식
+
+```json
+{ "code": 200, "message": "OK", "data": { ... } }
+```
+- 성공은 항상 HTTP 200
+- 실제 데이터는 `response.data.data` 에 위치
+- 조회 결과 없음: `data: null`
+
+---
+
+## 화면 목록
+
+| 경로 | 화면 | 권한 |
+|------|------|------|
+| `/auth/login` | 로그인 | 공통 |
+| `/` | 대시보드 | 공통 |
+| `/prompt/new` | 프롬프트 생성 | 공통 |
+| `/prompt/history` | 프롬프트 이력 | 공통 |
+| `/manage/categories` | 카테고리 관리 | MANAGER+ |
+| `/manage/tags` | 태그 관리 | MANAGER+ |
+| `/manage/users` | 사용자 관리 | ADMIN |
+
+---
+
+## 상세 문서 참조
+
+- 화면 설계: `docs/pages.md`
+- 개발 진행 현황: `docs/todo.md`
