@@ -9,7 +9,7 @@
     <v-card-text class="pt-6">
       <v-form @submit.prevent="handleLogin">
         <v-text-field
-          v-model="form.username"
+          v-model="form.loginId"
           label="아이디"
           prepend-inner-icon="mdi-account"
           variant="outlined"
@@ -64,7 +64,7 @@ import { useAuthStore } from '@/stores/auth'
 const router = useRouter()
 const authStore = useAuthStore()
 
-const form = reactive({ username: '', password: '' })
+const form = reactive({ loginId: '', password: '' })
 const showPassword = ref(false)
 const loading = ref(false)
 const errorMsg = ref('')

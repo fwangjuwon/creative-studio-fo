@@ -1,7 +1,7 @@
 # TODO
 
 > **프로젝트**: ns-creative-studio-fo
-> **상태**: 🔴 개발 시작 전
+> **상태**: 🟡 Step 2 완료, Step 3 진행 예정
 > **최종 업데이트**: 2026-02-27
 
 ---
@@ -35,12 +35,14 @@
 
 ---
 
-## Step 2. 인증 연동 *(백엔드 Step 4 완료 후)*
+## Step 2. 인증 연동
 
-- [ ] `POST /api/auth/login` 실제 연동 테스트
-- [ ] 로그인 실패 에러 메시지 처리
-- [ ] 라우터 역할 기반 가드 추가 (`meta.roles` 체크 — MANAGER/ADMIN 전용 페이지 보호)
-- [ ] `DefaultLayout.vue` — 역할별 네비게이션 메뉴 분기
+- [x] `POST /api/auth/login` 실제 연동 (응답 파싱 수정 — `response.data.data`)
+- [x] JWT 디코딩으로 `loginId`, `role` 추출 (`auth.js` store)
+- [x] 로그인 실패 에러 메시지 처리 (LoginView 기존 구현)
+- [x] 라우터 역할 기반 가드 추가 (`meta.roles` 체크 — MANAGER/ADMIN 전용 페이지 보호)
+- [x] `DefaultLayout.vue` — 역할별 네비게이션 메뉴 분기
+- [x] 전체 라우트 등록 (prompt/new, prompt/history, manage/*)
 
 ---
 
