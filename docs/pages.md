@@ -134,7 +134,7 @@ App.vue
   - `POST /api/categories`
   - `PUT /api/categories/{id}`
   - `DELETE /api/categories/{id}`
-- **상태**: ❌ 미구현
+- **상태**: ✅ 구현됨
 
 ---
 

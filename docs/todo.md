@@ -2,7 +2,7 @@
 
 > **프로젝트**: ns-creative-studio-fo
 > **상태**: 🟡 Step 3 완료, Step 4 진행 예정
-> **최종 업데이트**: 2026-02-27
+> **최종 업데이트**: 2026-02-27 (Step 3 완료)
 
 ---
 
@@ -41,7 +41,27 @@
 
 ---
 
-## Step 3. 프롬프트 생성 화면 (`/prompt/new`)
+## Step 3. 카테고리 관리 화면 (`/manage/categories`) ✅
+
+- [x] `CategoryView.vue` 구현 (MANAGER/ADMIN 전용)
+- [x] 카테고리 목록 조회 (단계별 드릴다운)
+- [x] 카테고리 추가 다이얼로그 (`POST /api/categories`)
+- [x] 카테고리 수정 다이얼로그 (`PUT /api/categories/{id}`)
+- [x] 카테고리 삭제 확인 + 에러 처리 (`DELETE /api/categories/{id}`, `C004` 처리)
+
+---
+
+## Step 4. 태그 관리 화면 (`/manage/tags`)
+
+- [ ] `TagView.vue` 구현 (MANAGER/ADMIN 전용)
+- [ ] 태그 그룹 목록 (`GET /api/tag-groups`)
+- [ ] 태그 그룹 추가/수정/삭제 (`TG002` 에러 처리)
+- [ ] 그룹 선택 시 태그 목록 표시 (`GET /api/tags?tagGroupId=`)
+- [ ] 태그 추가/수정/삭제
+
+---
+
+## Step 5. 프롬프트 생성 화면 (`/prompt/new`) ✅
 
 - [x] `PromptNewView.vue` 생성 + 라우터 등록
 - [x] 카테고리 드릴다운 컴포넌트 (가로 4단계 v-select)
@@ -63,9 +83,9 @@
 
 ---
 
-## Step 4. 프롬프트 이력 화면 (`/prompt/history`)
+## Step 6. 프롬프트 이력 화면 (`/prompt/history`)
 
-- [ ] `PromptHistoryView.vue` 생성 + 라우터 등록
+- [ ] `PromptHistoryView.vue` 구현
 - [ ] 이력 목록 조회 (`GET /api/prompts`) — UI 방식 결정 후 구현
 - [ ] 항목 클릭 시 전체 프롬프트 텍스트 표시 (다이얼로그 또는 확장)
 - [ ] 클립보드 복사 버튼
@@ -74,29 +94,9 @@
 
 ---
 
-## Step 5. 카테고리 관리 화면 (`/manage/categories`)
-
-- [ ] `CategoryView.vue` 생성 + 라우터 등록 (MANAGER/ADMIN 전용)
-- [ ] 카테고리 목록 조회 (단계별 드릴다운)
-- [ ] 카테고리 추가 다이얼로그 (`POST /api/categories`)
-- [ ] 카테고리 수정 다이얼로그 (`PUT /api/categories/{id}`)
-- [ ] 카테고리 삭제 확인 + 에러 처리 (`DELETE /api/categories/{id}`, `C004` 처리)
-
----
-
-## Step 6. 태그 관리 화면 (`/manage/tags`)
-
-- [ ] `TagView.vue` 생성 + 라우터 등록 (MANAGER/ADMIN 전용)
-- [ ] 태그 그룹 목록 (`GET /api/tag-groups`)
-- [ ] 태그 그룹 추가/수정/삭제 (`TG002` 에러 처리)
-- [ ] 그룹 선택 시 태그 목록 표시 (`GET /api/tags?tagGroupId=`)
-- [ ] 태그 추가/수정/삭제
-
----
-
 ## Step 7. 사용자 관리 화면 (`/manage/users`)
 
-- [ ] `UserView.vue` 생성 + 라우터 등록 (ADMIN 전용)
+- [ ] `UserView.vue` 구현 (ADMIN 전용)
 - [ ] 사용자 목록 조회 + 검색 필터 (`GET /api/users?name=&teamName=&role=`)
 - [ ] 사용자 추가 다이얼로그 (`POST /api/users`)
 - [ ] 사용자 수정 다이얼로그 (`PUT /api/users/{id}`)
