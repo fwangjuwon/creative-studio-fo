@@ -13,16 +13,29 @@
 
     <!-- 사이드바 -->
     <v-navigation-drawer v-model="drawer" :rail="rail" permanent>
+      <!-- 펼쳐진 상태: 타이틀 + 접기 버튼 -->
       <v-list-item
+        v-if="!rail"
         prepend-icon="mdi-palette"
         title="NS Creative Studio"
         nav
       >
         <template #append>
           <v-btn
-            :icon="rail ? 'mdi-chevron-right' : 'mdi-chevron-left'"
+            icon="mdi-chevron-left"
             variant="text"
-            @click="rail = !rail"
+            @click="rail = true"
+          />
+        </template>
+      </v-list-item>
+
+      <!-- 접힌 상태: 펼치기 버튼만 표시 -->
+      <v-list-item v-else nav>
+        <template #prepend>
+          <v-btn
+            icon="mdi-chevron-right"
+            variant="text"
+            @click="rail = false"
           />
         </template>
       </v-list-item>
