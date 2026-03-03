@@ -1,8 +1,8 @@
 # TODO
 
 > **프로젝트**: ns-creative-studio-fo
-> **상태**: 🟡 Step 5 완료, Step 6·7 진행 예정
-> **최종 업데이트**: 2026-03-03 (BO 리팩터링 반영 — 프롬프트 생성 API 변경)
+> **상태**: 🟡 Step 5 완료, Step 6·7 진행 예정 / Refactor 진행 예정
+> **최종 업데이트**: 2026-03-03 (BO 리팩터링 반영 + Phase 2 리팩터링 todo 추가)
 
 ---
 
@@ -120,6 +120,66 @@
 - [ ] 사용자 추가 다이얼로그 (`POST /api/users`)
 - [ ] 사용자 수정 다이얼로그 (`PUT /api/users/{id}`)
 - [ ] 사용자 삭제 확인 (`DELETE /api/users/{id}`)
+
+---
+
+---
+
+## Phase 2. 코드 리팩터링 (코딩 컨벤션 현행화)
+
+> **근거**: `.cursor/rules/coding-convention.mdc` — 이벤트 핸들러는 `on` + PascalCase 규칙
+> **대상**: Step 1~5에서 구현된 기존 코드
+
+### R1. `LoginView.vue` — 이벤트 핸들러 네이밍
+
+| 현재 | 변경 후 |
+|---|---|
+| `handleLogin` | `onLogin` |
+
+### R2. `DefaultLayout.vue` — 이벤트 핸들러 네이밍
+
+| 현재 | 변경 후 |
+|---|---|
+| `handleLogout` | `onLogout` |
+
+### R3. `CategoryView.vue` — 이벤트 핸들러 네이밍
+
+| 현재 | 변경 후 |
+|---|---|
+| `selectCategory` | `onCategorySelect` |
+| `openAddDialog` | `onAddDialogOpen` |
+| `openEditDialog` | `onEditDialogOpen` |
+| `openDeleteDialog` | `onDeleteDialogOpen` |
+| `submitAdd` | `onAddSubmit` |
+| `submitEdit` | `onEditSubmit` |
+| `submitDelete` | `onDeleteSubmit` |
+
+### R4. `TagView.vue` — 이벤트 핸들러 네이밍
+
+| 현재 | 변경 후 |
+|---|---|
+| `selectGroup` | `onGroupSelect` |
+| `openAddGroupDialog` | `onAddGroupDialogOpen` |
+| `openEditGroupDialog` | `onEditGroupDialogOpen` |
+| `openDeleteGroupDialog` | `onDeleteGroupDialogOpen` |
+| `submitAddGroup` | `onAddGroupSubmit` |
+| `submitEditGroup` | `onEditGroupSubmit` |
+| `submitDeleteGroup` | `onDeleteGroupSubmit` |
+| `openAddTagDialog` | `onAddTagDialogOpen` |
+| `openEditTagDialog` | `onEditTagDialogOpen` |
+| `openDeleteTagDialog` | `onDeleteTagDialogOpen` |
+| `submitAddTag` | `onAddTagSubmit` |
+| `submitEditTag` | `onEditTagSubmit` |
+| `submitDeleteTag` | `onDeleteTagSubmit` |
+
+### R5. `PromptNewView.vue` — 이벤트 핸들러 네이밍
+
+| 현재 | 변경 후 |
+|---|---|
+| `toggleTag` | `onTagToggle` |
+| `generatePrompt` | `onGeneratePrompt` |
+| `copyToClipboard` | `onCopyToClipboard` |
+| `regenerate` | `onRegenerate` |
 
 ---
 
