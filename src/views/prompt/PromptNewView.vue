@@ -106,7 +106,7 @@ async function fetchTagGroups() {
   }
 }
 
-function toggleTag(group, tagId) {
+function onTagToggle(group, tagId) {
   if (group.isMultiSelect) {
     const arr = selectedTags.value[group.id]
     const idx = arr.indexOf(tagId)
@@ -150,7 +150,7 @@ const errorMessage = ref('')
 const successSnackbar = ref(false)
 const copied = ref(false)
 
-async function generatePrompt() {
+async function onGeneratePrompt() {
   if (!canGenerate.value) return
   generating.value = true
   errorMessage.value = ''
@@ -175,7 +175,7 @@ async function generatePrompt() {
   }
 }
 
-async function copyToClipboard() {
+async function onCopyToClipboard() {
   if (!generatedPrompt.value) return
   try {
     await navigator.clipboard.writeText(generatedPrompt.value)
@@ -194,8 +194,8 @@ async function copyToClipboard() {
   }
 }
 
-function regenerate() {
-  generatePrompt()
+function onRegenerate() {
+  onGeneratePrompt()
 }
 </script>
 
@@ -315,7 +315,7 @@ function regenerate() {
                 :color="isTagSelected(group, tag.id) ? 'primary' : 'default'"
                 :variant="isTagSelected(group, tag.id) ? 'flat' : 'outlined'"
                 class="cursor-pointer"
-                @click="toggleTag(group, tag.id)"
+                @click="onTagToggle(group, tag.id)"
               >
                 {{ tag.name }}
               </v-chip>
@@ -334,7 +334,7 @@ function regenerate() {
         :disabled="!canGenerate"
         :loading="generating"
         prepend-icon="mdi-creation"
-        @click="generatePrompt"
+        @click="onGeneratePrompt"
       >
         프롬프트 생성
       </v-btn>
@@ -373,7 +373,7 @@ function regenerate() {
             :color="copied ? 'success' : 'primary'"
             variant="tonal"
             :prepend-icon="copied ? 'mdi-check' : 'mdi-content-copy'"
-            @click="copyToClipboard"
+            @click="onCopyToClipboard"
           >
             {{ copied ? '복사됨!' : '클립보드 복사' }}
           </v-btn>
@@ -382,7 +382,7 @@ function regenerate() {
             variant="tonal"
             prepend-icon="mdi-refresh"
             :loading="generating"
-            @click="regenerate"
+            @click="onRegenerate"
           >
             재생성
           </v-btn>

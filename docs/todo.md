@@ -125,26 +125,26 @@
 
 ---
 
-## Phase 2. 코드 리팩터링 (코딩 컨벤션 현행화)
+## Phase 2. 코드 리팩터링 (코딩 컨벤션 현행화) ✅
 
 > **근거**: `.cursor/rules/coding-convention.mdc` — 이벤트 핸들러는 `on` + PascalCase 규칙
 > **대상**: Step 1~5에서 구현된 기존 코드
 
-### R1. `LoginView.vue` — 이벤트 핸들러 네이밍
+### R1. `LoginView.vue` ✅
 
-| 현재 | 변경 후 |
+| 변경 전 | 변경 후 |
 |---|---|
 | `handleLogin` | `onLogin` |
 
-### R2. `DefaultLayout.vue` — 이벤트 핸들러 네이밍
+### R2. `DefaultLayout.vue` ✅
 
-| 현재 | 변경 후 |
+| 변경 전 | 변경 후 |
 |---|---|
 | `handleLogout` | `onLogout` |
 
-### R3. `CategoryView.vue` — 이벤트 핸들러 네이밍
+### R3. `CategoryView.vue` ✅
 
-| 현재 | 변경 후 |
+| 변경 전 | 변경 후 |
 |---|---|
 | `selectCategory` | `onCategorySelect` |
 | `openAddDialog` | `onAddDialogOpen` |
@@ -154,9 +154,9 @@
 | `submitEdit` | `onEditSubmit` |
 | `submitDelete` | `onDeleteSubmit` |
 
-### R4. `TagView.vue` — 이벤트 핸들러 네이밍
+### R4. `TagView.vue` ✅
 
-| 현재 | 변경 후 |
+| 변경 전 | 변경 후 |
 |---|---|
 | `selectGroup` | `onGroupSelect` |
 | `openAddGroupDialog` | `onAddGroupDialogOpen` |
@@ -172,9 +172,9 @@
 | `submitEditTag` | `onEditTagSubmit` |
 | `submitDeleteTag` | `onDeleteTagSubmit` |
 
-### R5. `PromptNewView.vue` — 이벤트 핸들러 네이밍
+### R5. `PromptNewView.vue` ✅
 
-| 현재 | 변경 후 |
+| 변경 전 | 변경 후 |
 |---|---|
 | `toggleTag` | `onTagToggle` |
 | `generatePrompt` | `onGeneratePrompt` |

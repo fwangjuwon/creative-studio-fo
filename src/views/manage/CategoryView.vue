@@ -33,7 +33,7 @@ onMounted(() => {
   fetchCategories(0)
 })
 
-function selectCategory(panelIndex, item) {
+function onCategorySelect(panelIndex, item) {
   const panel = panels.value[panelIndex]
   if (panel.selectedId === item.id) {
     // 같은 항목 클릭 시 선택 해제 + 하위 패널 초기화
@@ -68,14 +68,14 @@ const addForm = ref({ name: '', sortOrder: 0 })
 const addLoading = ref(false)
 const addError = ref('')
 
-function openAddDialog(panelIndex) {
+function onAddDialogOpen(panelIndex) {
   addTargetPanelIndex.value = panelIndex
   addForm.value = { name: '', sortOrder: 0 }
   addError.value = ''
   addDialog.value = true
 }
 
-async function submitAdd() {
+async function onAddSubmit() {
   if (!addForm.value.name.trim()) {
     addError.value = '카테고리명을 입력해 주세요.'
     return
@@ -111,14 +111,14 @@ const editForm = ref({ id: null, name: '', sortOrder: 0 })
 const editLoading = ref(false)
 const editError = ref('')
 
-function openEditDialog(panelIndex, item) {
+function onEditDialogOpen(panelIndex, item) {
   editTargetPanelIndex.value = panelIndex
   editForm.value = { id: item.id, name: item.name, sortOrder: item.sortOrder ?? 0 }
   editError.value = ''
   editDialog.value = true
 }
 
-async function submitEdit() {
+async function onEditSubmit() {
   if (!editForm.value.name.trim()) {
     editError.value = '카테고리명을 입력해 주세요.'
     return
@@ -148,14 +148,14 @@ const deleteTarget = ref(null)
 const deleteLoading = ref(false)
 const deleteError = ref('')
 
-function openDeleteDialog(panelIndex, item) {
+function onDeleteDialogOpen(panelIndex, item) {
   deleteTargetPanelIndex.value = panelIndex
   deleteTarget.value = item
   deleteError.value = ''
   deleteDialog.value = true
 }
 
-async function submitDelete() {
+async function onDeleteSubmit() {
   deleteLoading.value = true
   deleteError.value = ''
   try {
@@ -256,7 +256,7 @@ async function submitDelete() {
               active-color="primary"
               class="px-3"
               style="cursor: pointer;"
-              @click="selectCategory(idx, item)"
+              @click="onCategorySelect(idx, item)"
             >
               <template #title>
                 <span class="text-body-2">{{ item.name }}</span>
@@ -268,7 +268,7 @@ async function submitDelete() {
                     size="x-small"
                     variant="text"
                     color="primary"
-                    @click="openEditDialog(idx, item)"
+                    @click="onEditDialogOpen(idx, item)"
                   >
                     <v-icon size="14">mdi-pencil</v-icon>
                   </v-btn>
@@ -277,7 +277,7 @@ async function submitDelete() {
                     size="x-small"
                     variant="text"
                     color="error"
-                    @click="openDeleteDialog(idx, item)"
+                    @click="onDeleteDialogOpen(idx, item)"
                   >
                     <v-icon size="14">mdi-delete</v-icon>
                   </v-btn>
@@ -296,7 +296,7 @@ async function submitDelete() {
               color="primary"
               prepend-icon="mdi-plus"
               :disabled="idx > 0 && !panels[idx - 1].selectedId"
-              @click="openAddDialog(idx)"
+              @click="onAddDialogOpen(idx)"
             >
               추가
             </v-btn>
@@ -322,7 +322,7 @@ async function submitDelete() {
             autofocus
             hide-details="auto"
             class="mb-3"
-            @keyup.enter="submitAdd"
+            @keyup.enter="onAddSubmit"
           />
           <v-text-field
             v-model.number="addForm.sortOrder"
@@ -349,7 +349,7 @@ async function submitDelete() {
             color="primary"
             variant="flat"
             :loading="addLoading"
-            @click="submitAdd"
+            @click="onAddSubmit"
           >
             추가
           </v-btn>
@@ -374,7 +374,7 @@ async function submitDelete() {
             autofocus
             hide-details="auto"
             class="mb-3"
-            @keyup.enter="submitEdit"
+            @keyup.enter="onEditSubmit"
           />
           <v-text-field
             v-model.number="editForm.sortOrder"
@@ -401,7 +401,7 @@ async function submitDelete() {
             color="primary"
             variant="flat"
             :loading="editLoading"
-            @click="submitEdit"
+            @click="onEditSubmit"
           >
             저장
           </v-btn>
@@ -439,7 +439,7 @@ async function submitDelete() {
             color="error"
             variant="flat"
             :loading="deleteLoading"
-            @click="submitDelete"
+            @click="onDeleteSubmit"
           >
             삭제
           </v-btn>

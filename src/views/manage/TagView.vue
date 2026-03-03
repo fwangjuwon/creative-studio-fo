@@ -21,7 +21,7 @@ async function fetchTagGroups() {
   }
 }
 
-function selectGroup(group) {
+function onGroupSelect(group) {
   if (selectedGroupId.value === group.id) {
     selectedGroupId.value = null
     tags.value = []
@@ -41,13 +41,13 @@ const addGroupForm = ref({ name: '', isMultiSelect: false })
 const addGroupLoading = ref(false)
 const addGroupError = ref('')
 
-function openAddGroupDialog() {
+function onAddGroupDialogOpen() {
   addGroupForm.value = { name: '', isMultiSelect: false }
   addGroupError.value = ''
   addGroupDialog.value = true
 }
 
-async function submitAddGroup() {
+async function onAddGroupSubmit() {
   if (!addGroupForm.value.name.trim()) {
     addGroupError.value = '태그 그룹명을 입력해 주세요.'
     return
@@ -74,13 +74,13 @@ const editGroupForm = ref({ id: null, name: '', isMultiSelect: false })
 const editGroupLoading = ref(false)
 const editGroupError = ref('')
 
-function openEditGroupDialog(group) {
+function onEditGroupDialogOpen(group) {
   editGroupForm.value = { id: group.id, name: group.name, isMultiSelect: group.isMultiSelect ?? false }
   editGroupError.value = ''
   editGroupDialog.value = true
 }
 
-async function submitEditGroup() {
+async function onEditGroupSubmit() {
   if (!editGroupForm.value.name.trim()) {
     editGroupError.value = '태그 그룹명을 입력해 주세요.'
     return
@@ -108,13 +108,13 @@ const deleteGroupTarget = ref(null)
 const deleteGroupLoading = ref(false)
 const deleteGroupError = ref('')
 
-function openDeleteGroupDialog(group) {
+function onDeleteGroupDialogOpen(group) {
   deleteGroupTarget.value = group
   deleteGroupError.value = ''
   deleteGroupDialog.value = true
 }
 
-async function submitDeleteGroup() {
+async function onDeleteGroupSubmit() {
   deleteGroupLoading.value = true
   deleteGroupError.value = ''
   try {
@@ -162,13 +162,13 @@ const addTagForm = ref({ name: '', sortOrder: 0 })
 const addTagLoading = ref(false)
 const addTagError = ref('')
 
-function openAddTagDialog() {
+function onAddTagDialogOpen() {
   addTagForm.value = { name: '', sortOrder: 0 }
   addTagError.value = ''
   addTagDialog.value = true
 }
 
-async function submitAddTag() {
+async function onAddTagSubmit() {
   if (!addTagForm.value.name.trim()) {
     addTagError.value = '태그명을 입력해 주세요.'
     return
@@ -196,13 +196,13 @@ const editTagForm = ref({ id: null, name: '', sortOrder: 0 })
 const editTagLoading = ref(false)
 const editTagError = ref('')
 
-function openEditTagDialog(tag) {
+function onEditTagDialogOpen(tag) {
   editTagForm.value = { id: tag.id, name: tag.name, sortOrder: tag.sortOrder ?? 0 }
   editTagError.value = ''
   editTagDialog.value = true
 }
 
-async function submitEditTag() {
+async function onEditTagSubmit() {
   if (!editTagForm.value.name.trim()) {
     editTagError.value = '태그명을 입력해 주세요.'
     return
@@ -229,13 +229,13 @@ const deleteTagTarget = ref(null)
 const deleteTagLoading = ref(false)
 const deleteTagError = ref('')
 
-function openDeleteTagDialog(tag) {
+function onDeleteTagDialogOpen(tag) {
   deleteTagTarget.value = tag
   deleteTagError.value = ''
   deleteTagDialog.value = true
 }
 
-async function submitDeleteTag() {
+async function onDeleteTagSubmit() {
   deleteTagLoading.value = true
   deleteTagError.value = ''
   try {
@@ -303,7 +303,7 @@ async function submitDeleteTag() {
               active-color="primary"
               class="px-3"
               style="cursor: pointer;"
-              @click="selectGroup(group)"
+              @click="onGroupSelect(group)"
             >
               <template #title>
                 <span class="text-body-2">{{ group.name }}</span>
@@ -325,7 +325,7 @@ async function submitDeleteTag() {
                     size="x-small"
                     variant="text"
                     color="primary"
-                    @click="openEditGroupDialog(group)"
+                    @click="onEditGroupDialogOpen(group)"
                   >
                     <v-icon size="14">mdi-pencil</v-icon>
                   </v-btn>
@@ -334,7 +334,7 @@ async function submitDeleteTag() {
                     size="x-small"
                     variant="text"
                     color="error"
-                    @click="openDeleteGroupDialog(group)"
+                    @click="onDeleteGroupDialogOpen(group)"
                   >
                     <v-icon size="14">mdi-delete</v-icon>
                   </v-btn>
@@ -352,7 +352,7 @@ async function submitDeleteTag() {
               variant="tonal"
               color="primary"
               prepend-icon="mdi-plus"
-              @click="openAddGroupDialog"
+              @click="onAddGroupDialogOpen"
             >
               그룹 추가
             </v-btn>
@@ -433,7 +433,7 @@ async function submitDeleteTag() {
                     size="x-small"
                     variant="text"
                     color="primary"
-                    @click="openEditTagDialog(tag)"
+                    @click="onEditTagDialogOpen(tag)"
                   >
                     <v-icon size="14">mdi-pencil</v-icon>
                   </v-btn>
@@ -442,7 +442,7 @@ async function submitDeleteTag() {
                     size="x-small"
                     variant="text"
                     color="error"
-                    @click="openDeleteTagDialog(tag)"
+                    @click="onDeleteTagDialogOpen(tag)"
                   >
                     <v-icon size="14">mdi-delete</v-icon>
                   </v-btn>
@@ -461,7 +461,7 @@ async function submitDeleteTag() {
               color="primary"
               prepend-icon="mdi-plus"
               :disabled="!selectedGroupId"
-              @click="openAddTagDialog"
+              @click="onAddTagDialogOpen"
             >
               태그 추가
             </v-btn>
@@ -487,7 +487,7 @@ async function submitDeleteTag() {
             autofocus
             hide-details="auto"
             class="mb-4"
-            @keyup.enter="submitAddGroup"
+            @keyup.enter="onAddGroupSubmit"
           />
           <v-switch
             v-model="addGroupForm.isMultiSelect"
@@ -513,7 +513,7 @@ async function submitDeleteTag() {
             color="primary"
             variant="flat"
             :loading="addGroupLoading"
-            @click="submitAddGroup"
+            @click="onAddGroupSubmit"
           >
             추가
           </v-btn>
@@ -538,7 +538,7 @@ async function submitDeleteTag() {
             autofocus
             hide-details="auto"
             class="mb-4"
-            @keyup.enter="submitEditGroup"
+            @keyup.enter="onEditGroupSubmit"
           />
           <v-switch
             v-model="editGroupForm.isMultiSelect"
@@ -564,7 +564,7 @@ async function submitDeleteTag() {
             color="primary"
             variant="flat"
             :loading="editGroupLoading"
-            @click="submitEditGroup"
+            @click="onEditGroupSubmit"
           >
             저장
           </v-btn>
@@ -602,7 +602,7 @@ async function submitDeleteTag() {
             color="error"
             variant="flat"
             :loading="deleteGroupLoading"
-            @click="submitDeleteGroup"
+            @click="onDeleteGroupSubmit"
           >
             삭제
           </v-btn>
@@ -627,7 +627,7 @@ async function submitDeleteTag() {
             autofocus
             hide-details="auto"
             class="mb-3"
-            @keyup.enter="submitAddTag"
+            @keyup.enter="onAddTagSubmit"
           />
           <v-text-field
             v-model.number="addTagForm.sortOrder"
@@ -654,7 +654,7 @@ async function submitDeleteTag() {
             color="primary"
             variant="flat"
             :loading="addTagLoading"
-            @click="submitAddTag"
+            @click="onAddTagSubmit"
           >
             추가
           </v-btn>
@@ -679,7 +679,7 @@ async function submitDeleteTag() {
             autofocus
             hide-details="auto"
             class="mb-3"
-            @keyup.enter="submitEditTag"
+            @keyup.enter="onEditTagSubmit"
           />
           <v-text-field
             v-model.number="editTagForm.sortOrder"
@@ -706,7 +706,7 @@ async function submitDeleteTag() {
             color="primary"
             variant="flat"
             :loading="editTagLoading"
-            @click="submitEditTag"
+            @click="onEditTagSubmit"
           >
             저장
           </v-btn>
@@ -744,7 +744,7 @@ async function submitDeleteTag() {
             color="error"
             variant="flat"
             :loading="deleteTagLoading"
-            @click="submitDeleteTag"
+            @click="onDeleteTagSubmit"
           >
             삭제
           </v-btn>
