@@ -93,9 +93,9 @@
 
 **수정 파일**: `src/views/prompt/PromptNewView.vue`
 
-- [ ] `api.post('/prompts', ...)` → `api.post('/prompts/goods', ...)`
-- [ ] 요청 body `categoryId: selectedDcs.value` → `goodsCategoryId: selectedDcs.value`
-- [ ] 응답 `categoryId` 참조 확인 (현재는 `promptText`만 사용 중 → 실질 영향 없음)
+- [x] `api.post('/prompts', ...)` → `api.post('/prompts/goods', ...)`
+- [x] 요청 body `categoryId: selectedDcs.value` → `goodsCategoryId: selectedDcs.value`
+- [x] 응답 `categoryId` 참조 확인 (현재는 `promptText`만 사용 중 → 실질 영향 없음)
 
 > **변경 없는 것**: 히스토리 조회 `GET /api/prompts` — URL·응답 스펙 그대로 유지
 

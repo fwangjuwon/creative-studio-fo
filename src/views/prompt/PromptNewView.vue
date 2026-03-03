@@ -157,8 +157,8 @@ async function generatePrompt() {
   generatedPrompt.value = ''
 
   try {
-    const res = await api.post('/prompts', {
-      categoryId: selectedDcs.value,
+    const res = await api.post('/prompts/goods', {
+      goodsCategoryId: selectedDcs.value,
       tagIds: allSelectedTagIds.value,
     })
     generatedPrompt.value = res.data.data?.promptText ?? res.data.data ?? ''
