@@ -277,6 +277,36 @@ const generatedPersonPrompt = ref('')
 const personErrorMessage = ref('')
 const personCopied = ref(false)
 
+// ───────────────────────────────────────────────
+// Tab 2 이미지 생성 (NanaBanana)
+// ───────────────────────────────────────────────
+const generatingImage = ref(false)
+const generatedImageUrl = ref('')
+const imageErrorMessage = ref('')
+
+async function generatePersonImage() {
+  if (!generatedPersonPrompt.value) return
+  generatingImage.value = true
+  imageErrorMessage.value = ''
+  generatedImageUrl.value = ''
+
+  try {
+    const res = await api.post('/human-prompts/generate-image', {
+      promptText: generatedPersonPrompt.value,
+    }, { timeout: 120000 })  // 이미지 생성은 시간이 오래 걸리므로 2분으로 설정
+    generatedImageUrl.value = res.data.data?.imageUrl ?? ''
+  } catch (err) {
+    if (err.code === 'ECONNABORTED') {
+      imageErrorMessage.value = '이미지 생성 시간이 초과되었습니다. 다시 시도해 주세요.'
+    } else {
+      imageErrorMessage.value =
+        err.response?.data?.message || '이미지 생성 중 오류가 발생했습니다.'
+    }
+  } finally {
+    generatingImage.value = false
+  }
+}
+
 async function generatePersonPrompt() {
   generatingPerson.value = true
   personErrorMessage.value = ''
@@ -705,7 +735,44 @@ async function copyPersonToClipboard() {
                 >
                   재생성
                 </v-btn>
+                <v-btn
+                  color="deep-purple"
+                  variant="tonal"
+                  prepend-icon="mdi-image-spark"
+                  :loading="generatingImage"
+                  @click="generatePersonImage"
+                >
+                  이미지 생성
+                </v-btn>
               </div>
+            </v-card-text>
+          </v-card>
+
+          <!-- 이미지 생성 에러 -->
+          <v-alert
+            v-if="imageErrorMessage"
+            type="error"
+            variant="tonal"
+            class="mb-4"
+            closable
+            @click:close="imageErrorMessage = ''"
+          >
+            {{ imageErrorMessage }}
+          </v-alert>
+
+          <!-- 생성된 이미지 -->
+          <v-card v-if="generatedImageUrl" variant="outlined" class="mb-4">
+            <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+              <v-icon start color="deep-purple">mdi-image-check</v-icon>
+              생성된 이미지
+            </v-card-title>
+            <v-card-text class="text-center">
+              <img
+                :src="generatedImageUrl"
+                style="max-width: 512px; width: 100%; border-radius: 8px;"
+                alt="생성된 이미지"
+              />
+              <div class="text-caption text-medium-emphasis mt-2">{{ generatedImageUrl }}</div>
             </v-card-text>
           </v-card>
 
