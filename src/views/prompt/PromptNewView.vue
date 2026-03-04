@@ -280,6 +280,7 @@ const personCopied = ref(false)
 // ───────────────────────────────────────────────
 // Tab 2 이미지 생성 (NanaBanana)
 // ───────────────────────────────────────────────
+const personPromptHistoryId = ref(null)  // 프롬프트 생성 시 저장된 history ID
 const generatingImage = ref(false)
 const generatedImageUrl = ref('')
 const imageErrorMessage = ref('')
@@ -292,6 +293,7 @@ async function generatePersonImage() {
 
   try {
     const res = await api.post('/human-prompts/generate-image', {
+      historyId: personPromptHistoryId.value,
       promptText: generatedPersonPrompt.value,
     }, { timeout: 120000 })  // 이미지 생성은 시간이 오래 걸리므로 2분으로 설정
     generatedImageUrl.value = res.data.data?.imageUrl ?? ''
@@ -311,6 +313,8 @@ async function generatePersonPrompt() {
   generatingPerson.value = true
   personErrorMessage.value = ''
   generatedPersonPrompt.value = ''
+  personPromptHistoryId.value = null
+  generatedImageUrl.value = ''
 
   try {
     // selections: { attrId: [optionId, ...] } — 빈 배열인 attr은 제외
@@ -326,7 +330,9 @@ async function generatePersonPrompt() {
       purpose: personPurpose.value || null,
       additionalNotes: personAdditionalNotes.value || null,
     })
-    generatedPersonPrompt.value = res.data.data ?? ''
+    // 이력 ID와 프롬프트 텍스트 분리 저장
+    personPromptHistoryId.value = res.data.data?.id ?? null
+    generatedPersonPrompt.value = res.data.data?.promptText ?? ''
   } catch (err) {
     personErrorMessage.value =
       err.response?.data?.message || '프롬프트 생성 중 오류가 발생했습니다.'
