@@ -272,13 +272,16 @@ const personAdditionalNotes = ref('')
 // ───────────────────────────────────────────────
 // Tab 2 프롬프트 생성
 // ───────────────────────────────────────────────
-const generatingPerson = ref(false)
+// 현재 생성 중인 스타일: null | 'NANO_BANANA' | 'MID_JOURNEY'
+const generatingPersonStyle = ref(null)
+const generatingPerson = computed(() => generatingPersonStyle.value !== null)
 const generatedPersonPrompt = ref('')
+const generatedPersonStyle = ref('')   // 마지막으로 생성된 스타일 (결과 카드 뱃지 표시용)
 const personErrorMessage = ref('')
 const personCopied = ref(false)
 
 // ───────────────────────────────────────────────
-// Tab 2 이미지 생성 (NanaBanana)
+// Tab 2 이미지 생성 (NanoBanana)
 // ───────────────────────────────────────────────
 const personPromptHistoryId = ref(null)  // 프롬프트 생성 시 저장된 history ID
 const generatingImage = ref(false)
@@ -309,8 +312,8 @@ async function generatePersonImage() {
   }
 }
 
-async function generatePersonPrompt() {
-  generatingPerson.value = true
+async function generatePersonPrompt(promptStyle = 'NANO_BANANA') {
+  generatingPersonStyle.value = promptStyle
   personErrorMessage.value = ''
   generatedPersonPrompt.value = ''
   personPromptHistoryId.value = null
@@ -329,15 +332,17 @@ async function generatePersonPrompt() {
       selections,
       purpose: personPurpose.value || null,
       additionalNotes: personAdditionalNotes.value || null,
+      promptStyle,
     })
-    // 이력 ID와 프롬프트 텍스트 분리 저장
+    // 이력 ID, 프롬프트 텍스트, 사용된 스타일 저장
     personPromptHistoryId.value = res.data.data?.id ?? null
     generatedPersonPrompt.value = res.data.data?.promptText ?? ''
+    generatedPersonStyle.value = promptStyle
   } catch (err) {
     personErrorMessage.value =
       err.response?.data?.message || '프롬프트 생성 중 오류가 발생했습니다.'
   } finally {
-    generatingPerson.value = false
+    generatingPersonStyle.value = null
   }
 }
 
@@ -682,16 +687,27 @@ async function copyPersonToClipboard() {
             </v-card-text>
           </v-card>
 
-          <!-- 생성 버튼 -->
-          <div class="d-flex justify-center mb-6">
+          <!-- 생성 버튼 (NanoBanana / MidJourney) -->
+          <div class="d-flex justify-center gap-3 mb-6 flex-wrap">
             <v-btn
-              color="primary"
+              color="deep-purple"
               size="large"
-              :loading="generatingPerson"
-              prepend-icon="mdi-account-star"
-              @click="generatePersonPrompt"
+              :loading="generatingPersonStyle === 'NANO_BANANA'"
+              :disabled="generatingPerson && generatingPersonStyle !== 'NANO_BANANA'"
+              prepend-icon="mdi-creation"
+              @click="generatePersonPrompt('NANO_BANANA')"
             >
-              인물 프롬프트 생성
+              NanoBanana 프롬프트
+            </v-btn>
+            <v-btn
+              color="teal"
+              size="large"
+              :loading="generatingPersonStyle === 'MID_JOURNEY'"
+              :disabled="generatingPerson && generatingPersonStyle !== 'MID_JOURNEY'"
+              prepend-icon="mdi-format-list-bulleted"
+              @click="generatePersonPrompt('MID_JOURNEY')"
+            >
+              MidJourney 프롬프트
             </v-btn>
           </div>
 
@@ -710,8 +726,29 @@ async function copyPersonToClipboard() {
           <!-- 생성 결과 -->
           <v-card v-if="generatedPersonPrompt" variant="outlined" class="mb-4">
             <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
-              <v-icon start color="success">mdi-check-circle</v-icon>
-              생성된 인물 프롬프트
+              <div class="d-flex align-center gap-2 flex-wrap">
+                <v-icon color="success">mdi-check-circle</v-icon>
+                생성된 인물 프롬프트
+                <!-- 스타일 뱃지 -->
+                <v-chip
+                  v-if="generatedPersonStyle === 'NANO_BANANA'"
+                  size="small"
+                  color="deep-purple"
+                  variant="flat"
+                  prepend-icon="mdi-creation"
+                >
+                  NanoBanana
+                </v-chip>
+                <v-chip
+                  v-else-if="generatedPersonStyle === 'MID_JOURNEY'"
+                  size="small"
+                  color="teal"
+                  variant="flat"
+                  prepend-icon="mdi-format-list-bulleted"
+                >
+                  MidJourney
+                </v-chip>
+              </div>
             </v-card-title>
             <v-card-text>
               <v-textarea
@@ -723,7 +760,7 @@ async function copyPersonToClipboard() {
                 hide-details
                 class="mb-3 font-mono"
               />
-              <div class="d-flex gap-2">
+              <div class="d-flex gap-2 flex-wrap">
                 <v-btn
                   :color="personCopied ? 'success' : 'primary'"
                   variant="tonal"
@@ -737,7 +774,7 @@ async function copyPersonToClipboard() {
                   variant="tonal"
                   prepend-icon="mdi-refresh"
                   :loading="generatingPerson"
-                  @click="generatePersonPrompt"
+                  @click="generatePersonPrompt(generatedPersonStyle || 'NANO_BANANA')"
                 >
                   재생성
                 </v-btn>
@@ -748,7 +785,7 @@ async function copyPersonToClipboard() {
                   :loading="generatingImage"
                   @click="generatePersonImage"
                 >
-                  이미지 생성
+                  이미지 생성 (NanoBanana)
                 </v-btn>
               </div>
             </v-card-text>
