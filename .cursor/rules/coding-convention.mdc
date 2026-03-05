@@ -133,7 +133,7 @@ import axios from 'axios'
 ```javascript
 // 백엔드 공통 응답: { code: 200, message: "OK", data: {...} }
 // 실제 데이터 접근 방법:
-const res = await api.post('/prompts', payload)
+const res = await api.post('/prompts/goods', payload)
 const promptText = res.data.data.promptText
 ```
 

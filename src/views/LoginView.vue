@@ -7,7 +7,7 @@
     </v-card-item>
 
     <v-card-text class="pt-6">
-      <v-form @submit.prevent="handleLogin">
+      <v-form @submit.prevent="onLogin">
         <v-text-field
           v-model="form.loginId"
           label="아이디"
@@ -69,7 +69,7 @@ const showPassword = ref(false)
 const loading = ref(false)
 const errorMsg = ref('')
 
-async function handleLogin() {
+async function onLogin() {
   errorMsg.value = ''
   loading.value = true
   try {

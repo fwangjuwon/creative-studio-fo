@@ -112,7 +112,7 @@ async function fetchTagGroups() {
   }
 }
 
-function toggleTag(group, tagId) {
+function onTagToggle(group, tagId) {
   if (group.isMultiSelect) {
     const arr = selectedTags.value[group.id]
     const idx = arr.indexOf(tagId)
@@ -153,15 +153,15 @@ const generatedPrompt = ref('')
 const errorMessage = ref('')
 const copied = ref(false)
 
-async function generatePrompt() {
+async function onGeneratePrompt() {
   if (!canGenerate.value) return
   generating.value = true
   errorMessage.value = ''
   generatedPrompt.value = ''
 
   try {
-    const res = await api.post('/prompts', {
-      categoryId: selectedDcs.value,
+    const res = await api.post('/prompts/goods', {
+      goodsCategoryId: selectedDcs.value,
       tagIds: allSelectedTagIds.value,
     })
     generatedPrompt.value = res.data.data?.promptText ?? res.data.data ?? ''
@@ -178,7 +178,7 @@ async function generatePrompt() {
   }
 }
 
-async function copyToClipboard() {
+async function onCopyToClipboard() {
   if (!generatedPrompt.value) return
   try {
     await navigator.clipboard.writeText(generatedPrompt.value)
@@ -196,8 +196,8 @@ async function copyToClipboard() {
   }
 }
 
-function regenerate() {
-  generatePrompt()
+function onRegenerate() {
+  onGeneratePrompt()
 }
 
 
@@ -496,7 +496,7 @@ async function copyPersonToClipboard() {
                     :color="isTagSelected(group, tag.id) ? 'primary' : 'default'"
                     :variant="isTagSelected(group, tag.id) ? 'flat' : 'outlined'"
                     class="cursor-pointer"
-                    @click="toggleTag(group, tag.id)"
+                    @click="onTagToggle(group, tag.id)"
                   >
                     {{ tag.name }}
                   </v-chip>
@@ -515,7 +515,7 @@ async function copyPersonToClipboard() {
             :disabled="!canGenerate"
             :loading="generating"
             prepend-icon="mdi-creation"
-            @click="generatePrompt"
+            @click="onGeneratePrompt"
           >
             프롬프트 생성
           </v-btn>
@@ -554,7 +554,7 @@ async function copyPersonToClipboard() {
                 :color="copied ? 'success' : 'primary'"
                 variant="tonal"
                 :prepend-icon="copied ? 'mdi-check' : 'mdi-content-copy'"
-                @click="copyToClipboard"
+                @click="onCopyToClipboard"
               >
                 {{ copied ? '복사됨!' : '클립보드 복사' }}
               </v-btn>
@@ -563,7 +563,7 @@ async function copyPersonToClipboard() {
                 variant="tonal"
                 prepend-icon="mdi-refresh"
                 :loading="generating"
-                @click="regenerate"
+                @click="onRegenerate"
               >
                 재생성
               </v-btn>

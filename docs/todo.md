@@ -1,8 +1,8 @@
 # TODO
 
 > **프로젝트**: ns-creative-studio-fo
-> **상태**: 🟡 Step 3 완료, Step 4 진행 예정
-> **최종 업데이트**: 2026-02-27 (Step 3 완료)
+> **상태**: 🟡 Step 5 완료, Step 6·7 진행 예정 / Refactor 진행 예정
+> **최종 업데이트**: 2026-03-03 (BO 리팩터링 반영 + Phase 2 리팩터링 todo 추가)
 
 ---
 
@@ -51,13 +51,13 @@
 
 ---
 
-## Step 4. 태그 관리 화면 (`/manage/tags`)
+## Step 4. 태그 관리 화면 (`/manage/tags`) ✅
 
-- [ ] `TagView.vue` 구현 (MANAGER/ADMIN 전용)
-- [ ] 태그 그룹 목록 (`GET /api/tag-groups`)
-- [ ] 태그 그룹 추가/수정/삭제 (`TG002` 에러 처리)
-- [ ] 그룹 선택 시 태그 목록 표시 (`GET /api/tags?tagGroupId=`)
-- [ ] 태그 추가/수정/삭제
+- [x] `TagView.vue` 구현 (MANAGER/ADMIN 전용)
+- [x] 태그 그룹 목록 (`GET /api/tag-groups`)
+- [x] 태그 그룹 추가/수정/삭제 (`TG002` 에러 처리)
+- [x] 그룹 선택 시 태그 목록 표시 (`GET /api/tags?tagGroupId=`)
+- [x] 태그 추가/수정/삭제
 
 ---
 
@@ -72,7 +72,7 @@
   - [x] 태그 그룹 목록 조회 (`GET /api/tag-groups`)
   - [x] 그룹별 태그 조회 (`GET /api/tags?tagGroupId=`)
   - [x] `is_multi_select` 여부에 따라 단일/복수 선택 UI 분기
-- [x] 프롬프트 생성 버튼 (`POST /api/prompts`)
+- [x] 프롬프트 생성 버튼 (`POST /api/prompts/goods`) ~~`POST /api/prompts`~~
   - [x] 카테고리 미선택 시 버튼 비활성화
   - [x] 로딩 스피너
 - [x] 생성 결과 표시
@@ -81,16 +81,35 @@
   - [x] 재생성 버튼
 - [x] 일일 한도 초과 에러 처리 (`P001`)
 
+### ⚠️ BO 리팩터링 반영 (2026-03-03)
+
+> BO 상품 프롬프트 생성 API 변경사항 — `PromptNewView.vue` 수정 필요
+
+| 항목 | 변경 전 | 변경 후 |
+|---|---|---|
+| 엔드포인트 | `POST /api/prompts` | `POST /api/prompts/goods` |
+| 요청 body 필드명 | `categoryId` | `goodsCategoryId` |
+| 응답 body 필드명 | `categoryId` | `goodsCategoryId` |
+
+**수정 파일**: `src/views/prompt/PromptNewView.vue`
+
+- [x] `api.post('/prompts', ...)` → `api.post('/prompts/goods', ...)`
+- [x] 요청 body `categoryId: selectedDcs.value` → `goodsCategoryId: selectedDcs.value`
+- [x] 응답 `categoryId` 참조 확인 (현재는 `promptText`만 사용 중 → 실질 영향 없음)
+
+> **변경 없는 것**: 히스토리 조회 `GET /api/prompts` — URL·응답 스펙 그대로 유지
+
 ---
 
 ## Step 6. 프롬프트 이력 화면 (`/prompt/history`)
 
 - [ ] `PromptHistoryView.vue` 구현
-- [ ] 이력 목록 조회 (`GET /api/prompts`) — UI 방식 결정 후 구현
+- [ ] 이력 목록 조회 (`GET /api/prompts`) — URL·응답 스펙 변경 없음, UI 방식 결정 후 구현
 - [ ] 항목 클릭 시 전체 프롬프트 텍스트 표시 (다이얼로그 또는 확장)
 - [ ] 클립보드 복사 버튼
 - [ ] USER: 같은 팀 이력만 표시 (팀 미배정 시 빈 목록 안내)
 - [ ] MANAGER/ADMIN: 전체 이력 표시
+- [ ] ⚠️ 응답 필드명 주의: 카테고리 ID는 `goodsCategoryId` (구 `categoryId` 아님)
 
 ---
 
@@ -101,6 +120,66 @@
 - [ ] 사용자 추가 다이얼로그 (`POST /api/users`)
 - [ ] 사용자 수정 다이얼로그 (`PUT /api/users/{id}`)
 - [ ] 사용자 삭제 확인 (`DELETE /api/users/{id}`)
+
+---
+
+---
+
+## Phase 2. 코드 리팩터링 (코딩 컨벤션 현행화) ✅
+
+> **근거**: `.cursor/rules/coding-convention.mdc` — 이벤트 핸들러는 `on` + PascalCase 규칙
+> **대상**: Step 1~5에서 구현된 기존 코드
+
+### R1. `LoginView.vue` ✅
+
+| 변경 전 | 변경 후 |
+|---|---|
+| `handleLogin` | `onLogin` |
+
+### R2. `DefaultLayout.vue` ✅
+
+| 변경 전 | 변경 후 |
+|---|---|
+| `handleLogout` | `onLogout` |
+
+### R3. `CategoryView.vue` ✅
+
+| 변경 전 | 변경 후 |
+|---|---|
+| `selectCategory` | `onCategorySelect` |
+| `openAddDialog` | `onAddDialogOpen` |
+| `openEditDialog` | `onEditDialogOpen` |
+| `openDeleteDialog` | `onDeleteDialogOpen` |
+| `submitAdd` | `onAddSubmit` |
+| `submitEdit` | `onEditSubmit` |
+| `submitDelete` | `onDeleteSubmit` |
+
+### R4. `TagView.vue` ✅
+
+| 변경 전 | 변경 후 |
+|---|---|
+| `selectGroup` | `onGroupSelect` |
+| `openAddGroupDialog` | `onAddGroupDialogOpen` |
+| `openEditGroupDialog` | `onEditGroupDialogOpen` |
+| `openDeleteGroupDialog` | `onDeleteGroupDialogOpen` |
+| `submitAddGroup` | `onAddGroupSubmit` |
+| `submitEditGroup` | `onEditGroupSubmit` |
+| `submitDeleteGroup` | `onDeleteGroupSubmit` |
+| `openAddTagDialog` | `onAddTagDialogOpen` |
+| `openEditTagDialog` | `onEditTagDialogOpen` |
+| `openDeleteTagDialog` | `onDeleteTagDialogOpen` |
+| `submitAddTag` | `onAddTagSubmit` |
+| `submitEditTag` | `onEditTagSubmit` |
+| `submitDeleteTag` | `onDeleteTagSubmit` |
+
+### R5. `PromptNewView.vue` ✅
+
+| 변경 전 | 변경 후 |
+|---|---|
+| `toggleTag` | `onTagToggle` |
+| `generatePrompt` | `onGeneratePrompt` |
+| `copyToClipboard` | `onCopyToClipboard` |
+| `regenerate` | `onRegenerate` |
 
 ---
 

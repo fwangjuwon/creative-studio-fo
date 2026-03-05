@@ -5,7 +5,7 @@
       <v-app-bar-nav-icon @click="drawer = !drawer" />
       <v-app-bar-title>NS Creative Studio</v-app-bar-title>
       <v-spacer />
-      <v-btn icon @click="handleLogout">
+      <v-btn icon @click="onLogout">
         <v-icon>mdi-logout</v-icon>
         <v-tooltip activator="parent">로그아웃</v-tooltip>
       </v-btn>
@@ -109,7 +109,7 @@ const navItems = computed(() => {
   return items
 })
 
-function handleLogout() {
+function onLogout() {
   authStore.logout()
   router.push({ name: 'login' })
 }

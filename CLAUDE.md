@@ -111,7 +111,7 @@ ADMIN > MANAGER > USER
 ### 프롬프트 생성 흐름 (UI 관점)
 ```
 카테고리 드릴다운(DCS 선택) + 태그 칩 선택
-  → POST /api/prompts
+  → POST /api/prompts/goods
   → 영문 프롬프트 텍스트 반환
   → 결과 표시 + 클립보드 복사
 ```
