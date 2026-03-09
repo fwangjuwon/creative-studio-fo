@@ -63,6 +63,8 @@
 
 ## Step 5. 프롬프트 생성 화면 (`/prompt/new`) ✅
 
+### TAB 1: 상품 사진 프롬프트 ✅
+
 - [x] `PromptNewView.vue` 생성 + 라우터 등록
 - [x] 카테고리 드릴다운 컴포넌트 (가로 4단계 v-select)
   - [x] LCS 목록 조회 (`GET /api/categories?parentId=`)
@@ -80,6 +82,24 @@
   - [x] 클립보드 복사 버튼
   - [x] 재생성 버튼
 - [x] 일일 한도 초과 에러 처리 (`P001`)
+
+### TAB 2: 인물 사진 프롬프트 ✅
+
+- [x] 탭 전환 시 단계 구조 로드 (`GET /api/human-prompts/steps`)
+- [x] 단계(Step)별 속성(Attr) 칩 선택 UI
+  - [x] `multiSelect` 여부에 따라 단일/복수 선택 분기
+  - [x] `required` 속성 필수 뱃지 표시
+- [x] 추가 옵션 입력 (생성 목적, 추가 지시 사항) — 선택 사항
+- [x] 프롬프트 생성 버튼 2종 (`POST /api/human-prompts`)
+  - [x] NanoBanana 스타일 (`NANO_BANANA`)
+  - [x] MidJourney 스타일 (`MID_JOURNEY`)
+  - [x] 각 버튼 독립적 로딩 상태 (한 버튼 생성 중 나머지 비활성화)
+- [x] 생성 결과 표시 (스타일 뱃지 포함)
+  - [x] 영문 프롬프트 텍스트 박스
+  - [x] 클립보드 복사 버튼
+  - [x] 재생성 버튼
+- [x] 이미지 생성 버튼 (`POST /api/human-prompts/generate-image`, 타임아웃 2분)
+  - [x] 생성된 이미지 표시
 
 ### ⚠️ BO 리팩터링 반영 (2026-03-03)
 
