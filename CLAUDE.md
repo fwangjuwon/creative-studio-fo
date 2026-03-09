@@ -73,7 +73,13 @@ src/
 ├── views/
 │   ├── HomeView.vue
 │   ├── LoginView.vue
-│   └── (추가 예정 — docs/pages.md 참조)
+│   ├── prompt/
+│   │   ├── PromptNewView.vue
+│   │   └── PromptHistoryView.vue
+│   └── manage/
+│       ├── CategoryView.vue
+│       ├── TagView.vue
+│       └── UserView.vue
 ├── App.vue
 └── main.js
 ```
@@ -109,11 +115,23 @@ ADMIN > MANAGER > USER
 - ex: `인물(단일) → 남자/여자`, `분위기(복수) → 화사한/추운/따뜻한`
 
 ### 프롬프트 생성 흐름 (UI 관점)
+
+**상품 사진** (`/prompt/new` TAB 1)
 ```
 카테고리 드릴다운(DCS 선택) + 태그 칩 선택
-  → POST /api/prompts/goods
+  → NanaBanana / MidJourney 버튼 중 선택
+  → POST /api/prompts/goods { goodsCategoryId, tagIds[], promptStyle }
   → 영문 프롬프트 텍스트 반환
-  → 결과 표시 + 클립보드 복사
+  → 결과 표시 (스타일 뱃지) + 클립보드 복사
+```
+
+**인물 사진** (`/prompt/new` TAB 2)
+```
+단계별 옵션 선택 + 생성 목적/추가 지시 입력 (선택)
+  → NanaBanana / MidJourney 버튼 중 선택
+  → POST /api/human-prompts { selections, purpose, additionalNotes, promptStyle }
+  → 영문 프롬프트 텍스트 반환
+  → 결과 표시 + 클립보드 복사 + 이미지 생성
 ```
 
 ---
@@ -156,11 +174,11 @@ axios.get('http://localhost:8080/api/categories')
 |------|------|------|------|
 | `/auth/login` | 로그인 | 공통 | ✅ 구현됨 |
 | `/` | 대시보드 | 공통 | 🟡 틀만 |
-| `/prompt/new` | 프롬프트 생성 | 공통 | ❌ 미구현 |
-| `/prompt/history` | 프롬프트 이력 | 공통 | ❌ 미구현 |
-| `/manage/categories` | 카테고리 관리 | MANAGER+ | ❌ 미구현 |
-| `/manage/tags` | 태그 관리 | MANAGER+ | ❌ 미구현 |
-| `/manage/users` | 사용자 관리 | ADMIN | ❌ 미구현 |
+| `/prompt/new` | 프롬프트 생성 | 공통 | ✅ 구현됨 |
+| `/prompt/history` | 프롬프트 이력 | 공통 | ✅ 구현됨 |
+| `/manage/categories` | 카테고리 관리 | MANAGER+ | ✅ 구현됨 |
+| `/manage/tags` | 태그 관리 | MANAGER+ | ✅ 구현됨 |
+| `/manage/users` | 사용자 관리 | ADMIN | ✅ 구현됨 |
 
 > 화면 상세 스펙: [`docs/pages.md`](docs/pages.md)
 

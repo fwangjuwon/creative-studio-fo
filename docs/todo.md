@@ -1,17 +1,15 @@
 # TODO
 
 > **프로젝트**: ns-creative-studio-fo
-> **상태**: 🟡 Step 5 완료, Step 6·7 진행 예정 / Refactor 진행 예정
-> **최종 업데이트**: 2026-03-03 (BO 리팩터링 반영 + Phase 2 리팩터링 todo 추가)
+> **상태**: ✅ 전체 완료 (feat/history-detailize 반영 완료)
+> **최종 업데이트**: 2026-03-09 (BO feat/history-detailize 반영 — promptStyle, 이력 상세화)
 
 ---
 
 ## 결정 필요 사항
 
 - [x] 카테고리 드릴다운 UI 방식 결정 → **옵션 A: 가로 4단계 셀렉트박스 (`v-select` 4개)**
-- [ ] 프롬프트 이력 표시 방식 결정
-  - 옵션 A: 카드 리스트
-  - 옵션 B: 데이터 테이블 (`v-data-table`)
+- [x] 프롬프트 이력 표시 방식 결정 → **옵션 A: 카드 리스트**
 - [x] 네비게이션 구조 결정 → **옵션 A: 좌측 사이드바 (Step 2에서 구현 완료)**
 
 ---
@@ -24,7 +22,7 @@
 - [x] Axios 인스턴스 + 인터셉터 (JWT 주입, 401 자동 리다이렉트)
 - [x] 로그인 화면 기본 틀 (`LoginView.vue`)
 - [x] 홈 화면 기본 틀 (`HomeView.vue`)
-- [ ] `CLAUDE.md` 작성 (AI 진입점 문서)
+- [x] `CLAUDE.md` 작성 (AI 진입점 문서)
 - [x] `docs/pages.md` 작성 (화면 설계 문서)
 - [x] `docs/todo.md` 작성 (개발 진행 현황)
 
@@ -132,9 +130,16 @@
 - [x] USER: 같은 팀 이력만 표시 (백엔드 필터링)
 - [x] MANAGER/ADMIN: 전체 이력 표시
 
-### ⚠️ 미구현 항목 (백엔드 응답 필드 추가 필요)
-- [ ] 카테고리 경로 표시 — `GET /api/prompts` 응답에 `categoryPath` 필드 추가 필요 (현재 `categoryId`만 반환)
-- [ ] 선택 태그 표시 — `GET /api/prompts` 응답에 `tags: [{id, name}]` 필드 추가 필요 (현재 `tagIds`만 반환)
+### ✅ feat/history-detailize 반영 (2026-03-09)
+
+> BO `feat/history-detailize` 반영 — 프롬프트 생성/이력 API 변경사항
+
+- [x] 상품 프롬프트 생성 버튼 2종으로 변경 (`NanaBanana` / `MidJourney`) — `POST /api/prompts/goods` 요청에 `promptStyle` 포함
+- [x] 이력 카드에 `promptStyle` 스타일 뱃지 표시 (공통)
+- [x] 이력 카드에 카테고리 경로(`categoryPath`) 표시 (PRODUCT)
+- [x] 이력 카드에 태그 이름(`tagNames`) 칩 목록 표시 (PRODUCT)
+- [x] 이력 카드에 선택 옵션(`optionNames`) 칩 목록 표시 (PERSON)
+- [x] 이력 카드에 생성 목적(`purpose`), 추가 지시(`additionalNotes`) 표시 (PERSON)
 
 ---
 

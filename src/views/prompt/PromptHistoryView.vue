@@ -11,6 +11,11 @@ const promptTypeLabel = (type) => type === 'PERSON' ? '인물 사진' : '상품 
 const promptTypeColor = (type) => type === 'PERSON' ? 'deep-purple' : 'primary'
 const promptTypeIcon  = (type) => type === 'PERSON' ? 'mdi-account-outline' : 'mdi-image-outline'
 
+// 프롬프트 스타일 표시
+const promptStyleLabel = (style) => style === 'MID_JOURNEY' ? 'MidJourney' : 'NanaBanana'
+const promptStyleColor = (style) => style === 'MID_JOURNEY' ? 'teal' : 'primary'
+const promptStyleIcon  = (style) => style === 'MID_JOURNEY' ? 'mdi-format-list-bulleted' : 'mdi-creation'
+
 // 날짜 포맷
 function formatDate(dateStr) {
   if (!dateStr) return '-'
@@ -106,6 +111,17 @@ onMounted(fetchHistories)
                 {{ promptTypeLabel(item.promptType) }}
               </v-chip>
 
+              <!-- 스타일 뱃지 -->
+              <v-chip
+                v-if="item.promptStyle"
+                :color="promptStyleColor(item.promptStyle)"
+                variant="tonal"
+                size="small"
+                :prepend-icon="promptStyleIcon(item.promptStyle)"
+              >
+                {{ promptStyleLabel(item.promptStyle) }}
+              </v-chip>
+
               <!-- 이미지 있음 뱃지 -->
               <v-chip
                 v-if="item.imageUrl"
@@ -134,6 +150,61 @@ onMounted(fetchHistories)
           <v-divider />
 
           <v-card-text class="pa-4">
+
+            <!-- PRODUCT 전용: 카테고리 경로 + 태그 -->
+            <template v-if="item.promptType === 'PRODUCT'">
+              <div v-if="item.categoryPath" class="mb-3">
+                <span class="text-caption text-medium-emphasis mr-1">
+                  <v-icon size="14" class="mr-1">mdi-tag-multiple</v-icon>카테고리
+                </span>
+                <span class="text-body-2">{{ item.categoryPath }}</span>
+              </div>
+              <div v-if="item.tagNames && item.tagNames.length > 0" class="d-flex flex-wrap gap-1 mb-3">
+                <span class="text-caption text-medium-emphasis mr-1 align-self-center">
+                  <v-icon size="14" class="mr-1">mdi-label-multiple</v-icon>태그
+                </span>
+                <v-chip
+                  v-for="tag in item.tagNames"
+                  :key="tag"
+                  size="x-small"
+                  color="primary"
+                  variant="tonal"
+                >
+                  {{ tag }}
+                </v-chip>
+              </div>
+            </template>
+
+            <!-- PERSON 전용: 선택 옵션 + 목적 + 추가 지시 -->
+            <template v-else-if="item.promptType === 'PERSON'">
+              <div v-if="item.optionNames && item.optionNames.length > 0" class="d-flex flex-wrap gap-1 mb-3">
+                <span class="text-caption text-medium-emphasis mr-1 align-self-center">
+                  <v-icon size="14" class="mr-1">mdi-account-details</v-icon>선택 옵션
+                </span>
+                <v-chip
+                  v-for="opt in item.optionNames"
+                  :key="opt"
+                  size="x-small"
+                  color="deep-purple"
+                  variant="tonal"
+                >
+                  {{ opt }}
+                </v-chip>
+              </div>
+              <div v-if="item.purpose" class="mb-2">
+                <span class="text-caption text-medium-emphasis mr-1">
+                  <v-icon size="14" class="mr-1">mdi-target</v-icon>생성 목적
+                </span>
+                <span class="text-body-2">{{ item.purpose }}</span>
+              </div>
+              <div v-if="item.additionalNotes" class="mb-3">
+                <span class="text-caption text-medium-emphasis mr-1">
+                  <v-icon size="14" class="mr-1">mdi-note-text-outline</v-icon>추가 지시
+                </span>
+                <span class="text-body-2">{{ item.additionalNotes }}</span>
+              </div>
+            </template>
+
             <v-row>
               <!-- 프롬프트 텍스트 -->
               <v-col :cols="item.imageUrl ? 8 : 12">
@@ -179,6 +250,9 @@ onMounted(fetchHistories)
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.8rem;
   line-height: 1.5;
+}
+.gap-1 {
+  gap: 4px;
 }
 .gap-2 {
   gap: 8px;
