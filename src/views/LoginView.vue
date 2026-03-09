@@ -1,3 +1,30 @@
+<script setup>
+import { ref, reactive } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+const form = reactive({ loginId: '', password: '' })
+const showPassword = ref(false)
+const loading = ref(false)
+const errorMsg = ref('')
+
+async function onLogin() {
+  errorMsg.value = ''
+  loading.value = true
+  try {
+    await authStore.login(form)
+    router.push({ name: 'home' })
+  } catch (err) {
+    errorMsg.value = err.response?.data?.message || '로그인에 실패했습니다. 다시 시도해주세요.'
+  } finally {
+    loading.value = false
+  }
+}
+</script>
+
 <template>
   <v-card rounded="xl" elevation="8" class="pa-4">
     <v-card-item class="text-center pb-0">
@@ -55,30 +82,3 @@
     </v-card-text>
   </v-card>
 </template>
-
-<script setup>
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-
-const router = useRouter()
-const authStore = useAuthStore()
-
-const form = reactive({ loginId: '', password: '' })
-const showPassword = ref(false)
-const loading = ref(false)
-const errorMsg = ref('')
-
-async function onLogin() {
-  errorMsg.value = ''
-  loading.value = true
-  try {
-    await authStore.login(form)
-    router.push({ name: 'home' })
-  } catch (err) {
-    errorMsg.value = err.response?.data?.message || '로그인에 실패했습니다. 다시 시도해주세요.'
-  } finally {
-    loading.value = false
-  }
-}
-</script>

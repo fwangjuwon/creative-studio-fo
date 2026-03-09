@@ -1,3 +1,44 @@
+<script setup>
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+const drawer = ref(true)
+const rail = ref(false)
+
+const navItems = computed(() => {
+  const role = authStore.userRole
+  const items = [
+    { title: '홈', icon: 'mdi-home', to: '/' },
+    { title: '프롬프트 생성', icon: 'mdi-creation', to: '/prompt/new' },
+    { title: '프롬프트 이력', icon: 'mdi-history', to: '/prompt/history' },
+  ]
+
+  if (role === 'MANAGER' || role === 'ADMIN') {
+    items.push(
+      { title: '카테고리 관리', icon: 'mdi-tag-multiple', to: '/manage/categories' },
+      { title: '태그 관리', icon: 'mdi-label-multiple', to: '/manage/tags' },
+    )
+  }
+
+  if (role === 'ADMIN') {
+    items.push(
+      { title: '사용자 관리', icon: 'mdi-account-group', to: '/manage/users' },
+    )
+  }
+
+  return items
+})
+
+function onLogout() {
+  authStore.logout()
+  router.push({ name: 'login' })
+}
+</script>
+
 <template>
   <v-app>
     <!-- 상단 AppBar -->
@@ -73,44 +114,3 @@
     </v-main>
   </v-app>
 </template>
-
-<script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-
-const router = useRouter()
-const authStore = useAuthStore()
-
-const drawer = ref(true)
-const rail = ref(false)
-
-const navItems = computed(() => {
-  const role = authStore.userRole
-  const items = [
-    { title: '홈', icon: 'mdi-home', to: '/' },
-    { title: '프롬프트 생성', icon: 'mdi-creation', to: '/prompt/new' },
-    { title: '프롬프트 이력', icon: 'mdi-history', to: '/prompt/history' },
-  ]
-
-  if (role === 'MANAGER' || role === 'ADMIN') {
-    items.push(
-      { title: '카테고리 관리', icon: 'mdi-tag-multiple', to: '/manage/categories' },
-      { title: '태그 관리', icon: 'mdi-label-multiple', to: '/manage/tags' },
-    )
-  }
-
-  if (role === 'ADMIN') {
-    items.push(
-      { title: '사용자 관리', icon: 'mdi-account-group', to: '/manage/users' },
-    )
-  }
-
-  return items
-})
-
-function onLogout() {
-  authStore.logout()
-  router.push({ name: 'login' })
-}
-</script>
