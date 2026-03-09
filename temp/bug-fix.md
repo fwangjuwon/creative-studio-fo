@@ -60,7 +60,7 @@
 - `item.categoryPath` — `<v-chip>` 또는 텍스트로 카테고리 경로 표시 (GOODS 타입만)
 - `item.tags` — 태그 이름 배열을 `<v-chip>` 목록으로 표시
 
-- **상태**: [ ] 백엔드 수정 대기 → 이후 프론트 구현
+- **상태**: [x] 완료 (백엔드 `feat/history-detailize` 반영 후 구현)
 
 ### REQ-02. `PromptHistoryView.vue` — USER 팀 미배정 안내 메시지 없음
 - **파일**: `src/views/prompt/PromptHistoryView.vue`
@@ -107,7 +107,7 @@
 | ID | 파일 | 종류 | 상태 |
 |----|------|------|------|
 | BUG-01 | `HomeView.vue` | 버그 | ✅ 완료 |
-| REQ-01 | `PromptHistoryView.vue` | 요구사항 불일치 | ⬜ 대기 |
+| REQ-01 | `PromptHistoryView.vue` | 요구사항 불일치 | ✅ 완료 |
 | REQ-02 | `PromptHistoryView.vue` | 요구사항 불일치 | ➖ 보류 (대응 불필요) |
 | REQ-03 | `PromptNewView.vue` | 미문서화 기능 | ✅ 문서화 완료 |
 | REQ-04 | `UserView.vue` | 문서 불일치 | ✅ 완료 |
