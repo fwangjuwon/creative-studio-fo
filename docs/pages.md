@@ -78,6 +78,10 @@ App.vue
 #### `/prompt/new` — 프롬프트 생성
 - **레이아웃**: DefaultLayout
 - **접근 권한**: 전 역할 (로그인 필수)
+- **탭 구조**: 상품 사진 프롬프트 / 인물 사진 프롬프트 두 탭으로 구성
+- **상태**: ✅ 구현됨
+
+##### TAB 1: 상품 사진 프롬프트
 - **기능**:
   1. **카테고리 선택** (4단계 드릴다운)
      - 대분류(LCS) 목록 표시 → 선택
@@ -90,7 +94,6 @@ App.vue
      - `is_multi_select = true`: 복수 선택 (체크박스 동작)
   3. **프롬프트 생성** 버튼
      - 카테고리 미선택 시 비활성화
-     - `POST /api/prompts` 호출
      - 로딩 중 스피너 표시
   4. **결과 표시**
      - 생성된 영문 프롬프트 텍스트 박스
@@ -100,9 +103,35 @@ App.vue
   - `GET /api/categories?parentId=` (단계별 반복 호출)
   - `GET /api/tag-groups`
   - `GET /api/tags?tagGroupId=`
-  - `POST /api/prompts`
-- **상태**: ❌ 미구현
-- **참고**: USER는 일일 생성 한도 초과 시 에러 메시지 표시
+  - `POST /api/prompts/goods` → 요청: `{ goodsCategoryId, tagIds[] }` / 응답: `{ promptText }`
+- **참고**: USER는 일일 생성 한도 초과 시 에러 메시지 표시 (에러코드 `P001`)
+
+##### TAB 2: 인물 사진 프롬프트
+- **기능**:
+  1. **단계별 속성 선택** (백엔드에서 단계 구조 동적 로드)
+     - 각 단계(Step)는 여러 속성(Attr)을 포함
+     - 속성별 `multiSelect` 여부에 따라 단일/복수 선택 칩 UI
+     - `required` 속성은 필수 뱃지 표시
+  2. **추가 옵션** (선택 사항)
+     - 생성 목적 (예: SNS 광고용, 커머스 상세페이지)
+     - 추가 지시 사항 (Gemini에게 직접 전달할 자유 텍스트)
+  3. **프롬프트 생성** 버튼 — 스타일 2종
+     - `NanoBanana` 스타일 (`NANO_BANANA`)
+     - `MidJourney` 스타일 (`MID_JOURNEY`)
+  4. **결과 표시**
+     - 생성된 영문 프롬프트 텍스트 박스 (스타일 뱃지 표시)
+     - 클립보드 복사 버튼
+     - 재생성 버튼
+     - **이미지 생성 버튼** (NanoBanana API로 직접 이미지 생성)
+- **API**:
+  - `GET /api/human-prompts/steps` → 단계/속성/옵션 구조 조회
+    - 응답: `[{ id, stepNumber, name, attrs: [{ id, name, multiSelect, required, options: [{ id, name }] }] }]`
+  - `POST /api/human-prompts` → 프롬프트 생성
+    - 요청: `{ selections: { attrId: [optionId] }, purpose, additionalNotes, promptStyle }`
+    - 응답: `{ id, promptText }`
+  - `POST /api/human-prompts/generate-image` → 이미지 생성 (타임아웃 2분)
+    - 요청: `{ historyId, promptText }`
+    - 응답: `{ imageUrl }`
 
 ---
 
@@ -110,13 +139,18 @@ App.vue
 - **레이아웃**: DefaultLayout
 - **접근 권한**: 전 역할 (로그인 필수)
 - **기능**:
-  - 프롬프트 생성 이력 목록 표시 (카드 또는 테이블)
-  - 각 항목: 생성일시, 생성자, 카테고리(경로), 선택 태그, 프롬프트 텍스트 (일부 표시)
-  - 클릭 시 전체 프롬프트 텍스트 표시 + 클립보드 복사
-  - **USER**: 같은 팀 이력만 표시 (팀 미배정 USER는 빈 목록)
+  - 프롬프트 생성 이력 카드 목록 표시
+  - 각 항목: 생성일시, 생성자, 프롬프트 타입(상품/인물) 뱃지, 프롬프트 텍스트
+  - 이미지 생성된 항목은 이미지 썸네일 함께 표시
+  - 클립보드 복사 버튼
+  - 새로고침 버튼
+  - **USER**: 같은 팀 이력만 표시 (백엔드에서 필터링)
   - **MANAGER / ADMIN**: 전체 이력 표시
-- **API**: `GET /api/prompts` (또는 `GET /api/prompts?userId=`)
-- **상태**: ❌ 미구현
+- **API**: `GET /api/prompts`
+- **상태**: ✅ 구현됨
+- **미구현 항목** (백엔드 응답 필드 추가 필요):
+  - 카테고리 경로 표시 — 백엔드 응답에 `categoryPath` 필드 추가 필요
+  - 선택 태그 표시 — 백엔드 응답에 `tags: [{id, name}]` 필드 추가 필요
 
 ---
 
@@ -156,7 +190,7 @@ App.vue
   - `POST /api/tags`
   - `PUT /api/tags/{id}`
   - `DELETE /api/tags/{id}`
-- **상태**: ❌ 미구현
+- **상태**: ✅ 구현됨
 
 ---
 
@@ -175,7 +209,7 @@ App.vue
   - `POST /api/users`
   - `PUT /api/users/{id}`
   - `DELETE /api/users/{id}`
-- **상태**: ❌ 미구현
+- **상태**: ✅ 구현됨
 
 ---
 

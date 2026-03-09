@@ -63,6 +63,8 @@
 
 ## Step 5. 프롬프트 생성 화면 (`/prompt/new`) ✅
 
+### TAB 1: 상품 사진 프롬프트 ✅
+
 - [x] `PromptNewView.vue` 생성 + 라우터 등록
 - [x] 카테고리 드릴다운 컴포넌트 (가로 4단계 v-select)
   - [x] LCS 목록 조회 (`GET /api/categories?parentId=`)
@@ -80,6 +82,24 @@
   - [x] 클립보드 복사 버튼
   - [x] 재생성 버튼
 - [x] 일일 한도 초과 에러 처리 (`P001`)
+
+### TAB 2: 인물 사진 프롬프트 ✅
+
+- [x] 탭 전환 시 단계 구조 로드 (`GET /api/human-prompts/steps`)
+- [x] 단계(Step)별 속성(Attr) 칩 선택 UI
+  - [x] `multiSelect` 여부에 따라 단일/복수 선택 분기
+  - [x] `required` 속성 필수 뱃지 표시
+- [x] 추가 옵션 입력 (생성 목적, 추가 지시 사항) — 선택 사항
+- [x] 프롬프트 생성 버튼 2종 (`POST /api/human-prompts`)
+  - [x] NanoBanana 스타일 (`NANO_BANANA`)
+  - [x] MidJourney 스타일 (`MID_JOURNEY`)
+  - [x] 각 버튼 독립적 로딩 상태 (한 버튼 생성 중 나머지 비활성화)
+- [x] 생성 결과 표시 (스타일 뱃지 포함)
+  - [x] 영문 프롬프트 텍스트 박스
+  - [x] 클립보드 복사 버튼
+  - [x] 재생성 버튼
+- [x] 이미지 생성 버튼 (`POST /api/human-prompts/generate-image`, 타임아웃 2분)
+  - [x] 생성된 이미지 표시
 
 ### ⚠️ BO 리팩터링 반영 (2026-03-03)
 
@@ -101,25 +121,30 @@
 
 ---
 
-## Step 6. 프롬프트 이력 화면 (`/prompt/history`)
+## Step 6. 프롬프트 이력 화면 (`/prompt/history`) ✅
 
-- [ ] `PromptHistoryView.vue` 구현
-- [ ] 이력 목록 조회 (`GET /api/prompts`) — URL·응답 스펙 변경 없음, UI 방식 결정 후 구현
-- [ ] 항목 클릭 시 전체 프롬프트 텍스트 표시 (다이얼로그 또는 확장)
-- [ ] 클립보드 복사 버튼
-- [ ] USER: 같은 팀 이력만 표시 (팀 미배정 시 빈 목록 안내)
-- [ ] MANAGER/ADMIN: 전체 이력 표시
-- [ ] ⚠️ 응답 필드명 주의: 카테고리 ID는 `goodsCategoryId` (구 `categoryId` 아님)
+- [x] `PromptHistoryView.vue` 구현
+- [x] 이력 목록 조회 (`GET /api/prompts`)
+- [x] 프롬프트 타입(상품/인물) 뱃지 표시
+- [x] 클립보드 복사 버튼
+- [x] 새로고침 버튼
+- [x] 이미지 생성된 항목 썸네일 표시
+- [x] USER: 같은 팀 이력만 표시 (백엔드 필터링)
+- [x] MANAGER/ADMIN: 전체 이력 표시
+
+### ⚠️ 미구현 항목 (백엔드 응답 필드 추가 필요)
+- [ ] 카테고리 경로 표시 — `GET /api/prompts` 응답에 `categoryPath` 필드 추가 필요 (현재 `categoryId`만 반환)
+- [ ] 선택 태그 표시 — `GET /api/prompts` 응답에 `tags: [{id, name}]` 필드 추가 필요 (현재 `tagIds`만 반환)
 
 ---
 
-## Step 7. 사용자 관리 화면 (`/manage/users`)
+## Step 7. 사용자 관리 화면 (`/manage/users`) ✅
 
-- [ ] `UserView.vue` 구현 (ADMIN 전용)
-- [ ] 사용자 목록 조회 + 검색 필터 (`GET /api/users?name=&teamName=&role=`)
-- [ ] 사용자 추가 다이얼로그 (`POST /api/users`)
-- [ ] 사용자 수정 다이얼로그 (`PUT /api/users/{id}`)
-- [ ] 사용자 삭제 확인 (`DELETE /api/users/{id}`)
+- [x] `UserView.vue` 구현 (ADMIN 전용)
+- [x] 사용자 목록 조회 + 검색 필터 (`GET /api/users?name=&teamName=&role=`)
+- [x] 사용자 추가 다이얼로그 (`POST /api/users`)
+- [x] 사용자 수정 다이얼로그 (`PUT /api/users/{id}`)
+- [x] 사용자 삭제 확인 (`DELETE /api/users/{id}`)
 
 ---
 
