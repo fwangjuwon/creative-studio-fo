@@ -92,18 +92,20 @@ App.vue
      - 태그 그룹 목록 조회 → 그룹별로 태그 칩 렌더링
      - `is_multi_select = false`: 단일 선택 (라디오 동작)
      - `is_multi_select = true`: 복수 선택 (체크박스 동작)
-  3. **프롬프트 생성** 버튼
-     - 카테고리 미선택 시 비활성화
-     - 로딩 중 스피너 표시
+  3. **프롬프트 생성** 버튼 — 스타일 2종
+     - `NanaBanana` 스타일 버튼 (`NANO_BANANA`)
+     - `MidJourney` 스타일 버튼 (`MID_JOURNEY`)
+     - 카테고리 미선택 시 버튼 비활성화
+     - 한 버튼 생성 중 나머지 버튼 비활성화
   4. **결과 표시**
-     - 생성된 영문 프롬프트 텍스트 박스
+     - 생성된 영문 프롬프트 텍스트 박스 (스타일 뱃지 표시)
      - 클립보드 복사 버튼
-     - 재생성 버튼 (같은 조건으로 재호출)
+     - 재생성 버튼 (마지막 사용 스타일로 재호출)
 - **API**:
   - `GET /api/categories?parentId=` (단계별 반복 호출)
   - `GET /api/tag-groups`
   - `GET /api/tags?tagGroupId=`
-  - `POST /api/prompts/goods` → 요청: `{ goodsCategoryId, tagIds[] }` / 응답: `{ promptText }`
+  - `POST /api/prompts/goods` → 요청: `{ goodsCategoryId, tagIds[], promptStyle }` / 응답: `{ promptText }`
 - **참고**: USER는 일일 생성 한도 초과 시 에러 메시지 표시 (에러코드 `P001`)
 
 ##### TAB 2: 인물 사진 프롬프트
@@ -140,17 +142,17 @@ App.vue
 - **접근 권한**: 전 역할 (로그인 필수)
 - **기능**:
   - 프롬프트 생성 이력 카드 목록 표시
-  - 각 항목: 생성일시, 생성자, 프롬프트 타입(상품/인물) 뱃지, 프롬프트 텍스트
+  - 각 항목: 생성일시, 생성자, 프롬프트 타입(상품/인물) 뱃지, 스타일 뱃지(NanaBanana/MidJourney), 프롬프트 텍스트
+  - **PRODUCT** 항목: 카테고리 경로(`대분류 > 중분류 > 소분류 > 세분류`), 선택 태그 칩 목록
+  - **PERSON** 항목: 선택 옵션 칩 목록, 생성 목적, 추가 지시 사항 (값 있을 때만)
   - 이미지 생성된 항목은 이미지 썸네일 함께 표시
   - 클립보드 복사 버튼
   - 새로고침 버튼
   - **USER**: 같은 팀 이력만 표시 (백엔드에서 필터링)
   - **MANAGER / ADMIN**: 전체 이력 표시
 - **API**: `GET /api/prompts`
+  - 응답 신규 필드: `promptStyle`, `categoryPath`, `tagNames` (PRODUCT), `optionNames`, `purpose`, `additionalNotes` (PERSON)
 - **상태**: ✅ 구현됨
-- **미구현 항목** (백엔드 응답 필드 추가 필요):
-  - 카테고리 경로 표시 — 백엔드 응답에 `categoryPath` 필드 추가 필요
-  - 선택 태그 표시 — 백엔드 응답에 `tags: [{id, name}]` 필드 추가 필요
 
 ---
 
