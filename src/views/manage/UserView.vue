@@ -72,15 +72,15 @@ onMounted(fetchUsers)
 // ───────────────────────────────────────────────
 
 const createDialog = ref(false)
-// 생성 폼 초기값: 권한 USER, 일일 한도 10
-const createForm = ref({ loginId: '', password: '', name: '', role: 'USER', teamName: '', dailyLimit: 10 })
+// 생성 폼 초기값: 권한 USER, 일일 한도 5
+const createForm = ref({ loginId: '', password: '', name: '', role: 'USER', teamName: '', dailyLimit: 5 })
 const createLoading = ref(false)
 const createError = ref('')
 const showCreatePassword = ref(false) // 비밀번호 표시 토글
 
 // 생성 다이얼로그 열기 — 폼 초기화
 function onCreateDialogOpen() {
-  createForm.value = { loginId: '', password: '', name: '', role: 'USER', teamName: '', dailyLimit: 10 }
+  createForm.value = { loginId: '', password: '', name: '', role: 'USER', teamName: '', dailyLimit: 5 }
   createError.value = ''
   showCreatePassword.value = false
   createDialog.value = true
