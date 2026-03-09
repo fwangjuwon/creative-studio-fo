@@ -121,25 +121,30 @@
 
 ---
 
-## Step 6. 프롬프트 이력 화면 (`/prompt/history`)
+## Step 6. 프롬프트 이력 화면 (`/prompt/history`) ✅
 
-- [ ] `PromptHistoryView.vue` 구현
-- [ ] 이력 목록 조회 (`GET /api/prompts`) — URL·응답 스펙 변경 없음, UI 방식 결정 후 구현
-- [ ] 항목 클릭 시 전체 프롬프트 텍스트 표시 (다이얼로그 또는 확장)
-- [ ] 클립보드 복사 버튼
-- [ ] USER: 같은 팀 이력만 표시 (팀 미배정 시 빈 목록 안내)
-- [ ] MANAGER/ADMIN: 전체 이력 표시
-- [ ] ⚠️ 응답 필드명 주의: 카테고리 ID는 `goodsCategoryId` (구 `categoryId` 아님)
+- [x] `PromptHistoryView.vue` 구현
+- [x] 이력 목록 조회 (`GET /api/prompts`)
+- [x] 프롬프트 타입(상품/인물) 뱃지 표시
+- [x] 클립보드 복사 버튼
+- [x] 새로고침 버튼
+- [x] 이미지 생성된 항목 썸네일 표시
+- [x] USER: 같은 팀 이력만 표시 (백엔드 필터링)
+- [x] MANAGER/ADMIN: 전체 이력 표시
+
+### ⚠️ 미구현 항목 (백엔드 응답 필드 추가 필요)
+- [ ] 카테고리 경로 표시 — `GET /api/prompts` 응답에 `categoryPath` 필드 추가 필요 (현재 `categoryId`만 반환)
+- [ ] 선택 태그 표시 — `GET /api/prompts` 응답에 `tags: [{id, name}]` 필드 추가 필요 (현재 `tagIds`만 반환)
 
 ---
 
-## Step 7. 사용자 관리 화면 (`/manage/users`)
+## Step 7. 사용자 관리 화면 (`/manage/users`) ✅
 
-- [ ] `UserView.vue` 구현 (ADMIN 전용)
-- [ ] 사용자 목록 조회 + 검색 필터 (`GET /api/users?name=&teamName=&role=`)
-- [ ] 사용자 추가 다이얼로그 (`POST /api/users`)
-- [ ] 사용자 수정 다이얼로그 (`PUT /api/users/{id}`)
-- [ ] 사용자 삭제 확인 (`DELETE /api/users/{id}`)
+- [x] `UserView.vue` 구현 (ADMIN 전용)
+- [x] 사용자 목록 조회 + 검색 필터 (`GET /api/users?name=&teamName=&role=`)
+- [x] 사용자 추가 다이얼로그 (`POST /api/users`)
+- [x] 사용자 수정 다이얼로그 (`PUT /api/users/{id}`)
+- [x] 사용자 삭제 확인 (`DELETE /api/users/{id}`)
 
 ---
 
