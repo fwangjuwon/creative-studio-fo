@@ -148,14 +148,17 @@ const allSelectedTagIds = computed(() => {
 // Tab 1 프롬프트 생성
 // ───────────────────────────────────────────────
 const canGenerate = computed(() => !!selectedDcs.value)
-const generating = ref(false)
+// 현재 생성 중인 스타일: null | 'NANO_BANANA' | 'MID_JOURNEY'
+const generatingStyle = ref(null)
+const generating = computed(() => generatingStyle.value !== null)
 const generatedPrompt = ref('')
+const generatedStyle = ref('')   // 마지막으로 생성된 스타일 (결과 카드 뱃지 표시용)
 const errorMessage = ref('')
 const copied = ref(false)
 
-async function onGeneratePrompt() {
+async function onGeneratePrompt(promptStyle = 'NANO_BANANA') {
   if (!canGenerate.value) return
-  generating.value = true
+  generatingStyle.value = promptStyle
   errorMessage.value = ''
   generatedPrompt.value = ''
 
@@ -163,8 +166,10 @@ async function onGeneratePrompt() {
     const res = await api.post('/prompts/goods', {
       goodsCategoryId: selectedDcs.value,
       tagIds: allSelectedTagIds.value,
+      promptStyle,
     })
     generatedPrompt.value = res.data.data?.promptText ?? res.data.data ?? ''
+    generatedStyle.value = promptStyle
   } catch (err) {
     const code = err.response?.data?.code
     if (code === 'P001') {
@@ -174,7 +179,7 @@ async function onGeneratePrompt() {
         err.response?.data?.message || '프롬프트 생성 중 오류가 발생했습니다.'
     }
   } finally {
-    generating.value = false
+    generatingStyle.value = null
   }
 }
 
@@ -197,7 +202,7 @@ async function onCopyToClipboard() {
 }
 
 function onRegenerate() {
-  onGeneratePrompt()
+  onGeneratePrompt(generatedStyle.value || 'NANO_BANANA')
 }
 
 
@@ -507,17 +512,27 @@ async function copyPersonToClipboard() {
           </v-card-text>
         </v-card>
 
-        <!-- ─── 생성 버튼 ─── -->
-        <div class="d-flex justify-center mb-6">
+        <!-- ─── 생성 버튼 (NanoBanana / MidJourney) ─── -->
+        <div class="d-flex justify-center gap-3 mb-6 flex-wrap">
           <v-btn
             color="primary"
             size="large"
-            :disabled="!canGenerate"
-            :loading="generating"
+            :disabled="!canGenerate || (generating && generatingStyle !== 'NANO_BANANA')"
+            :loading="generatingStyle === 'NANO_BANANA'"
             prepend-icon="mdi-creation"
-            @click="onGeneratePrompt"
+            @click="onGeneratePrompt('NANO_BANANA')"
           >
-            프롬프트 생성
+            NanoBanana 프롬프트
+          </v-btn>
+          <v-btn
+            color="teal"
+            size="large"
+            :disabled="!canGenerate || (generating && generatingStyle !== 'MID_JOURNEY')"
+            :loading="generatingStyle === 'MID_JOURNEY'"
+            prepend-icon="mdi-format-list-bulleted"
+            @click="onGeneratePrompt('MID_JOURNEY')"
+          >
+            MidJourney 프롬프트
           </v-btn>
         </div>
 
@@ -536,8 +551,28 @@ async function copyPersonToClipboard() {
         <!-- ─── 생성 결과 ─── -->
         <v-card v-if="generatedPrompt" variant="outlined" class="mb-4">
           <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
-            <v-icon start color="success">mdi-check-circle</v-icon>
-            생성된 프롬프트
+            <div class="d-flex align-center gap-2 flex-wrap">
+              <v-icon color="success">mdi-check-circle</v-icon>
+              생성된 프롬프트
+              <v-chip
+                v-if="generatedStyle === 'NANO_BANANA'"
+                size="small"
+                color="primary"
+                variant="flat"
+                prepend-icon="mdi-creation"
+              >
+                NanaBanana
+              </v-chip>
+              <v-chip
+                v-else-if="generatedStyle === 'MID_JOURNEY'"
+                size="small"
+                color="teal"
+                variant="flat"
+                prepend-icon="mdi-format-list-bulleted"
+              >
+                MidJourney
+              </v-chip>
+            </div>
           </v-card-title>
           <v-card-text>
             <v-textarea

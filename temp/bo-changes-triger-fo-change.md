@@ -185,6 +185,10 @@
   - 선택지: `NanoBanana (기본)` → `NANO_BANANA`, `MidJourney` → `MID_JOURNEY`
   - 미선택 시 요청 바디에서 생략 (서버가 기본값 `NANO_BANANA` 적용)
 
+> **[결정]** TAB 2(인물 사진)와 동일하게 **버튼 2개 방식**으로 구현.
+> `NanoBanana 프롬프트` / `MidJourney 프롬프트` 버튼을 누르면 해당 스타일로 바로 생성.
+> 사유: 두 탭 간 UX 통일. TAB 2 기존 구현(`generatingPersonStyle` 패턴) 참고.
+
 ### 4-2. 인물 프롬프트 생성 화면
 
 - [ ] `purpose` 입력 필드 추가 (textarea 또는 input, 선택)
