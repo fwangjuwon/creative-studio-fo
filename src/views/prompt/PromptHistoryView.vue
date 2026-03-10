@@ -12,7 +12,7 @@ const promptTypeColor = (type) => type === 'PERSON' ? 'deep-purple' : 'primary'
 const promptTypeIcon  = (type) => type === 'PERSON' ? 'mdi-account-outline' : 'mdi-image-outline'
 
 // 프롬프트 스타일 표시
-const promptStyleLabel = (style) => style === 'MID_JOURNEY' ? 'MidJourney' : 'NanaBanana'
+const promptStyleLabel = (style) => style === 'MID_JOURNEY' ? 'MidJourney' : 'NanoBanana'
 const promptStyleColor = (style) => style === 'MID_JOURNEY' ? 'teal' : 'primary'
 const promptStyleIcon  = (style) => style === 'MID_JOURNEY' ? 'mdi-format-list-bulleted' : 'mdi-creation'
 

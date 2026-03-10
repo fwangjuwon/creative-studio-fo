@@ -134,7 +134,7 @@
 
 > BO `feat/history-detailize` 반영 — 프롬프트 생성/이력 API 변경사항
 
-- [x] 상품 프롬프트 생성 버튼 2종으로 변경 (`NanaBanana` / `MidJourney`) — `POST /api/prompts/goods` 요청에 `promptStyle` 포함
+- [x] 상품 프롬프트 생성 버튼 2종으로 변경 (`NanoBanana` / `MidJourney`) — `POST /api/prompts/goods` 요청에 `promptStyle` 포함
 - [x] 이력 카드에 `promptStyle` 스타일 뱃지 표시 (공통)
 - [x] 이력 카드에 카테고리 경로(`categoryPath`) 표시 (PRODUCT)
 - [x] 이력 카드에 태그 이름(`tagNames`) 칩 목록 표시 (PRODUCT)

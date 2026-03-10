@@ -119,7 +119,7 @@ ADMIN > MANAGER > USER
 **상품 사진** (`/prompt/new` TAB 1)
 ```
 카테고리 드릴다운(DCS 선택) + 태그 칩 선택
-  → NanaBanana / MidJourney 버튼 중 선택
+  → NanoBanana / MidJourney 버튼 중 선택
   → POST /api/prompts/goods { goodsCategoryId, tagIds[], promptStyle }
   → 영문 프롬프트 텍스트 반환
   → 결과 표시 (스타일 뱃지) + 클립보드 복사
@@ -128,7 +128,7 @@ ADMIN > MANAGER > USER
 **인물 사진** (`/prompt/new` TAB 2)
 ```
 단계별 옵션 선택 + 생성 목적/추가 지시 입력 (선택)
-  → NanaBanana / MidJourney 버튼 중 선택
+  → NanoBanana / MidJourney 버튼 중 선택
   → POST /api/human-prompts { selections, purpose, additionalNotes, promptStyle }
   → 영문 프롬프트 텍스트 반환
   → 결과 표시 + 클립보드 복사 + 이미지 생성

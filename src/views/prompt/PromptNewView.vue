@@ -151,16 +151,26 @@ const canGenerate = computed(() => !!selectedDcs.value)
 // 현재 생성 중인 스타일: null | 'NANO_BANANA' | 'MID_JOURNEY'
 const generatingStyle = ref(null)
 const generating = computed(() => generatingStyle.value !== null)
+const goodsPromptHistoryId = ref(null)  // 프롬프트 생성 시 저장된 history ID
 const generatedPrompt = ref('')
 const generatedStyle = ref('')   // 마지막으로 생성된 스타일 (결과 카드 뱃지 표시용)
 const errorMessage = ref('')
 const copied = ref(false)
+
+// ───────────────────────────────────────────────
+// Tab 1 이미지 생성 (NanoBanana)
+// ───────────────────────────────────────────────
+const generatingGoodsImage = ref(false)
+const generatedGoodsImageUrl = ref('')
+const goodsImageErrorMessage = ref('')
 
 async function onGeneratePrompt(promptStyle = 'NANO_BANANA') {
   if (!canGenerate.value) return
   generatingStyle.value = promptStyle
   errorMessage.value = ''
   generatedPrompt.value = ''
+  goodsPromptHistoryId.value = null
+  generatedGoodsImageUrl.value = ''
 
   try {
     const res = await api.post('/prompts/goods', {
@@ -168,6 +178,7 @@ async function onGeneratePrompt(promptStyle = 'NANO_BANANA') {
       tagIds: allSelectedTagIds.value,
       promptStyle,
     })
+    goodsPromptHistoryId.value = res.data.data?.id ?? null
     generatedPrompt.value = res.data.data?.promptText ?? res.data.data ?? ''
     generatedStyle.value = promptStyle
   } catch (err) {
@@ -180,6 +191,30 @@ async function onGeneratePrompt(promptStyle = 'NANO_BANANA') {
     }
   } finally {
     generatingStyle.value = null
+  }
+}
+
+async function generateGoodsImage() {
+  if (!generatedPrompt.value) return
+  generatingGoodsImage.value = true
+  goodsImageErrorMessage.value = ''
+  generatedGoodsImageUrl.value = ''
+
+  try {
+    const res = await api.post('/prompts/goods/generate-image', {
+      historyId: goodsPromptHistoryId.value,
+      promptText: generatedPrompt.value,
+    }, { timeout: 120000 })
+    generatedGoodsImageUrl.value = res.data.data?.imageUrl ?? ''
+  } catch (err) {
+    if (err.code === 'ECONNABORTED') {
+      goodsImageErrorMessage.value = '이미지 생성 시간이 초과되었습니다. 다시 시도해 주세요.'
+    } else {
+      goodsImageErrorMessage.value =
+        err.response?.data?.message || '이미지 생성 중 오류가 발생했습니다.'
+    }
+  } finally {
+    generatingGoodsImage.value = false
   }
 }
 
@@ -561,7 +596,7 @@ async function copyPersonToClipboard() {
                 variant="flat"
                 prepend-icon="mdi-creation"
               >
-                NanaBanana
+                NanoBanana
               </v-chip>
               <v-chip
                 v-else-if="generatedStyle === 'MID_JOURNEY'"
@@ -584,7 +619,7 @@ async function copyPersonToClipboard() {
               hide-details
               class="mb-3 font-mono"
             />
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2 flex-wrap">
               <v-btn
                 :color="copied ? 'success' : 'primary'"
                 variant="tonal"
@@ -602,7 +637,44 @@ async function copyPersonToClipboard() {
               >
                 재생성
               </v-btn>
+              <v-btn
+                color="deep-purple"
+                variant="tonal"
+                prepend-icon="mdi-image-spark"
+                :loading="generatingGoodsImage"
+                @click="generateGoodsImage"
+              >
+                이미지 생성 (NanoBanana)
+              </v-btn>
             </div>
+          </v-card-text>
+        </v-card>
+
+        <!-- ─── 이미지 생성 에러 ─── -->
+        <v-alert
+          v-if="goodsImageErrorMessage"
+          type="error"
+          variant="tonal"
+          class="mb-4"
+          closable
+          @click:close="goodsImageErrorMessage = ''"
+        >
+          {{ goodsImageErrorMessage }}
+        </v-alert>
+
+        <!-- ─── 생성된 이미지 ─── -->
+        <v-card v-if="generatedGoodsImageUrl" variant="outlined" class="mb-4">
+          <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+            <v-icon start color="deep-purple">mdi-image-check</v-icon>
+            생성된 이미지
+          </v-card-title>
+          <v-card-text class="text-center">
+            <img
+              :src="generatedGoodsImageUrl"
+              style="max-width: 512px; width: 100%; border-radius: 8px;"
+              alt="생성된 이미지"
+            />
+            <div class="text-caption text-medium-emphasis mt-2">{{ generatedGoodsImageUrl }}</div>
           </v-card-text>
         </v-card>
 
