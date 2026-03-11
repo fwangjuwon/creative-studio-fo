@@ -196,6 +196,32 @@ App.vue
 
 ---
 
+#### `/manage/human-prompts` — 인물 속성 관리
+- **레이아웃**: DefaultLayout
+- **접근 권한**: `MANAGER`, `ADMIN`
+- **기능**:
+  - 인물 프롬프트 구조 트리 표시 (Step → Attr → Option 3단계 계층)
+  - **Step 관리**: 추가 / 수정 / 삭제
+    - 생성 시 `stepCode` 지정 (생성 후 수정 불가)
+    - 삭제 시 하위 Attr 존재하면 오류 메시지 표시
+  - **Attr 관리**: Step 선택 후 Attr 추가 / 수정 / 삭제
+    - `isMultiSelect`: 복수 선택 허용 여부 (switch)
+    - `isRequired`: 필수 선택 여부 (switch)
+    - 삭제 시 하위 Option 존재하면 오류 메시지 표시
+  - **Option 관리**: Attr 확장 후 Option 추가 / 수정 / 삭제
+    - `name`: 화면 표시명 (한국어)
+    - `promptValue`: Gemini API에 전달할 영문값
+    - 삭제 시 프롬프트 이력 참조 중이면 오류 메시지 표시
+- **UI 레이아웃**: 2패널 — 왼쪽(Step 목록) + 오른쪽(Attr 확장 패널, 펼치면 Option 목록)
+- **API**:
+  - `GET /api/human-prompts/steps` — 전체 트리 조회
+  - `POST/PUT/DELETE /api/human-prompts/steps/{id}` — Step CUD
+  - `POST/PUT/DELETE /api/human-prompts/attrs/{id}` — Attr CUD
+  - `POST/PUT/DELETE /api/human-prompts/options/{id}` — Option CUD
+- **상태**: ✅ 구현됨
+
+---
+
 #### `/manage/users` — 사용자 관리
 - **레이아웃**: DefaultLayout
 - **접근 권한**: `ADMIN` 전용

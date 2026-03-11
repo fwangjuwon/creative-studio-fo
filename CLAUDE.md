@@ -79,6 +79,7 @@ src/
 │   └── manage/
 │       ├── CategoryView.vue
 │       ├── TagView.vue
+│       ├── HumanPromptStructureView.vue
 │       └── UserView.vue
 ├── App.vue
 └── main.js
@@ -178,6 +179,7 @@ axios.get('http://localhost:8080/api/categories')
 | `/prompt/history` | 프롬프트 이력 | 공통 | ✅ 구현됨 |
 | `/manage/categories` | 카테고리 관리 | MANAGER+ | ✅ 구현됨 |
 | `/manage/tags` | 태그 관리 | MANAGER+ | ✅ 구현됨 |
+| `/manage/human-prompts` | 인물 속성 관리 | MANAGER+ | ✅ 구현됨 |
 | `/manage/users` | 사용자 관리 | ADMIN | ✅ 구현됨 |
 
 > 화면 상세 스펙: [`docs/pages.md`](docs/pages.md)

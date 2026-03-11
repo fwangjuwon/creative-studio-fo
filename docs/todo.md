@@ -213,7 +213,7 @@
 
 ---
 
-## Step 8. 인물 프롬프트 구조 관리 화면 (`/manage/human-prompts`) 🔲
+## Step 8. 인물 프롬프트 구조 관리 화면 (`/manage/human-prompts`) ✅
 
 > **참고 API 명세**: `temp/frontend-human-prompt-step-attr-option-cud.md`  
 > **권한**: MANAGER+  
@@ -228,33 +228,33 @@
 
 ### 신규 파일 / 설정 변경
 
-- [ ] `src/views/manage/HumanPromptStructureView.vue` 생성
-- [ ] `src/router/index.js` — 라우트 추가 (`/manage/human-prompts`, MANAGER+, `manage-human-prompts`)
-- [ ] `src/layouts/DefaultLayout.vue` — navItems에 메뉴 항목 추가 (MANAGER+ 조건)
-- [ ] `docs/pages.md` — 화면 스펙 섹션 추가
-- [ ] `CLAUDE.md` / `GEMINI.md` — 소스 구조·화면 목록 업데이트
+- [x] `src/views/manage/HumanPromptStructureView.vue` 생성
+- [x] `src/router/index.js` — 라우트 추가 (`/manage/human-prompts`, MANAGER+, `manage-human-prompts`)
+- [x] `src/layouts/DefaultLayout.vue` — navItems에 메뉴 항목 추가 (MANAGER+ 조건)
+- [x] `docs/pages.md` — 화면 스펙 섹션 추가
+- [x] `CLAUDE.md` / `GEMINI.md` — 소스 구조·화면 목록 업데이트
 
 ### 데이터 로드
 
-- [ ] 마운트 시 `GET /api/human-prompts/steps` 로 전체 트리 로드
+- [x] 마운트 시 `GET /api/human-prompts/steps` 로 전체 트리 로드
 
 ### Step CUD
 
-- [ ] Step 생성 다이얼로그 — `stepNumber`(number), `stepCode`(string), `name`(string)
-- [ ] Step 수정 다이얼로그 — `stepNumber`, `name`만 수정 가능 (`stepCode` 필드 disabled 표시)
-- [ ] Step 삭제 확인 다이얼로그 — 하위 Attr 존재 시 400 → `response.data.message` 표시
+- [x] Step 생성 다이얼로그 — `stepNumber`(number), `stepCode`(string), `name`(string)
+- [x] Step 수정 다이얼로그 — `stepNumber`, `name`만 수정 가능 (`stepCode` 필드 disabled 표시)
+- [x] Step 삭제 확인 다이얼로그 — 하위 Attr 존재 시 400 → `response.data.message` 표시
 
 ### Attr CUD
 
-- [ ] Attr 생성 다이얼로그 — `name`, `isMultiSelect`(switch), `isRequired`(switch), `sortOrder`(number)
-- [ ] Attr 수정 다이얼로그 — 동일 필드 (`stepId` 변경 불가 — 폼에서 제외)
-- [ ] Attr 삭제 확인 다이얼로그 — 하위 Option 존재 시 400 → `response.data.message` 표시
+- [x] Attr 생성 다이얼로그 — `name`, `isMultiSelect`(switch), `isRequired`(switch), `sortOrder`(number)
+- [x] Attr 수정 다이얼로그 — 동일 필드 (`stepId` 변경 불가 — 폼에서 제외)
+- [x] Attr 삭제 확인 다이얼로그 — 하위 Option 존재 시 400 → `response.data.message` 표시
 
 ### Option CUD
 
-- [ ] Option 생성 다이얼로그 — `name`(한국어 표시명), `promptValue`(Gemini 전달 영문값), `sortOrder`(number)
-- [ ] Option 수정 다이얼로그 — 동일 필드 (`attrId` 변경 불가 — 폼에서 제외)
-- [ ] Option 삭제 확인 다이얼로그 — 이력 참조 중 400 → `response.data.message` 표시
+- [x] Option 생성 다이얼로그 — `name`(한국어 표시명), `promptValue`(Gemini 전달 영문값), `sortOrder`(number)
+- [x] Option 수정 다이얼로그 — 동일 필드 (`attrId` 변경 불가 — 폼에서 제외)
+- [x] Option 삭제 확인 다이얼로그 — 이력 참조 중 400 → `response.data.message` 표시
 
 ### ⚠️ 기술적 주의사항 (구현 시 반드시 확인)
 
