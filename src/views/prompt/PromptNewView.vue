@@ -161,7 +161,7 @@ const copied = ref(false)
 // Tab 1 이미지 생성 (NanoBanana)
 // ───────────────────────────────────────────────
 const generatingGoodsImage = ref(false)
-const generatedGoodsImageUrl = ref('')
+const generatedGoodsImageUrls = ref([])
 const goodsImageErrorMessage = ref('')
 
 async function onGeneratePrompt(promptStyle = 'NANO_BANANA') {
@@ -170,7 +170,7 @@ async function onGeneratePrompt(promptStyle = 'NANO_BANANA') {
   errorMessage.value = ''
   generatedPrompt.value = ''
   goodsPromptHistoryId.value = null
-  generatedGoodsImageUrl.value = ''
+  generatedGoodsImageUrls.value = []
 
   try {
     const res = await api.post('/prompts/goods', {
@@ -198,14 +198,14 @@ async function generateGoodsImage() {
   if (!generatedPrompt.value) return
   generatingGoodsImage.value = true
   goodsImageErrorMessage.value = ''
-  generatedGoodsImageUrl.value = ''
+  generatedGoodsImageUrls.value = []
 
   try {
     const res = await api.post('/prompts/goods/generate-image', {
       historyId: goodsPromptHistoryId.value,
       promptText: generatedPrompt.value,
-    }, { timeout: 120000 })
-    generatedGoodsImageUrl.value = res.data.data?.imageUrl ?? ''
+    }, { timeout: 180000 })
+    generatedGoodsImageUrls.value = res.data.data?.imageUrls ?? []
   } catch (err) {
     if (err.code === 'ECONNABORTED') {
       goodsImageErrorMessage.value = '이미지 생성 시간이 초과되었습니다. 다시 시도해 주세요.'
@@ -325,21 +325,21 @@ const personCopied = ref(false)
 // ───────────────────────────────────────────────
 const personPromptHistoryId = ref(null)  // 프롬프트 생성 시 저장된 history ID
 const generatingImage = ref(false)
-const generatedImageUrl = ref('')
+const generatedImageUrls = ref([])
 const imageErrorMessage = ref('')
 
 async function generatePersonImage() {
   if (!generatedPersonPrompt.value) return
   generatingImage.value = true
   imageErrorMessage.value = ''
-  generatedImageUrl.value = ''
+  generatedImageUrls.value = []
 
   try {
     const res = await api.post('/human-prompts/generate-image', {
       historyId: personPromptHistoryId.value,
       promptText: generatedPersonPrompt.value,
-    }, { timeout: 120000 })  // 이미지 생성은 시간이 오래 걸리므로 2분으로 설정
-    generatedImageUrl.value = res.data.data?.imageUrl ?? ''
+    }, { timeout: 180000 })  // 3개 병렬 생성이므로 3분으로 설정
+    generatedImageUrls.value = res.data.data?.imageUrls ?? []
   } catch (err) {
     if (err.code === 'ECONNABORTED') {
       imageErrorMessage.value = '이미지 생성 시간이 초과되었습니다. 다시 시도해 주세요.'
@@ -357,7 +357,7 @@ async function generatePersonPrompt(promptStyle = 'NANO_BANANA') {
   personErrorMessage.value = ''
   generatedPersonPrompt.value = ''
   personPromptHistoryId.value = null
-  generatedImageUrl.value = ''
+  generatedImageUrls.value = []
 
   try {
     // selections: { attrId: [optionId, ...] } — 빈 배열인 attr은 제외
@@ -383,6 +383,27 @@ async function generatePersonPrompt(promptStyle = 'NANO_BANANA') {
       err.response?.data?.message || '프롬프트 생성 중 오류가 발생했습니다.'
   } finally {
     generatingPersonStyle.value = null
+  }
+}
+
+// ───────────────────────────────────────────────
+// 이미지 다운로드 (공통)
+// ───────────────────────────────────────────────
+async function downloadImage(url, index) {
+  try {
+    const response = await fetch(url)
+    const blob = await response.blob()
+    const objectUrl = URL.createObjectURL(blob)
+    const ext = url.split('.').pop() || 'jpg'
+    const link = document.createElement('a')
+    link.href = objectUrl
+    link.download = `generated_image_${index + 1}.${ext}`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(objectUrl)
+  } catch (err) {
+    console.error('이미지 다운로드 실패:', err)
   }
 }
 
@@ -662,19 +683,47 @@ async function copyPersonToClipboard() {
           {{ goodsImageErrorMessage }}
         </v-alert>
 
-        <!-- ─── 생성된 이미지 ─── -->
-        <v-card v-if="generatedGoodsImageUrl" variant="outlined" class="mb-4">
+        <!-- ─── 생성된 이미지 (3개 그리드) ─── -->
+        <v-card v-if="generatedGoodsImageUrls.length" variant="outlined" class="mb-4">
           <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
             <v-icon start color="deep-purple">mdi-image-check</v-icon>
-            생성된 이미지
+            생성된 이미지 ({{ generatedGoodsImageUrls.length }}개)
           </v-card-title>
-          <v-card-text class="text-center">
-            <img
-              :src="generatedGoodsImageUrl"
-              style="max-width: 512px; width: 100%; border-radius: 8px;"
-              alt="생성된 이미지"
-            />
-            <div class="text-caption text-medium-emphasis mt-2">{{ generatedGoodsImageUrl }}</div>
+          <v-card-text>
+            <v-row>
+              <v-col
+                v-for="(url, idx) in generatedGoodsImageUrls"
+                :key="idx"
+                cols="12"
+                sm="4"
+              >
+                <v-card variant="flat" border rounded="lg">
+                  <v-img
+                    :src="url"
+                    aspect-ratio="1"
+                    cover
+                    rounded="t-lg"
+                  >
+                    <template #placeholder>
+                      <div class="d-flex align-center justify-center fill-height">
+                        <v-progress-circular indeterminate color="deep-purple" />
+                      </div>
+                    </template>
+                  </v-img>
+                  <v-card-actions class="justify-center pa-2">
+                    <v-btn
+                      size="small"
+                      color="deep-purple"
+                      variant="tonal"
+                      prepend-icon="mdi-download"
+                      @click="downloadImage(url, idx)"
+                    >
+                      저장
+                    </v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-col>
+            </v-row>
           </v-card-text>
         </v-card>
 
@@ -910,19 +959,47 @@ async function copyPersonToClipboard() {
             {{ imageErrorMessage }}
           </v-alert>
 
-          <!-- 생성된 이미지 -->
-          <v-card v-if="generatedImageUrl" variant="outlined" class="mb-4">
+          <!-- 생성된 이미지 (3개 그리드) -->
+          <v-card v-if="generatedImageUrls.length" variant="outlined" class="mb-4">
             <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
               <v-icon start color="deep-purple">mdi-image-check</v-icon>
-              생성된 이미지
+              생성된 이미지 ({{ generatedImageUrls.length }}개)
             </v-card-title>
-            <v-card-text class="text-center">
-              <img
-                :src="generatedImageUrl"
-                style="max-width: 512px; width: 100%; border-radius: 8px;"
-                alt="생성된 이미지"
-              />
-              <div class="text-caption text-medium-emphasis mt-2">{{ generatedImageUrl }}</div>
+            <v-card-text>
+              <v-row>
+                <v-col
+                  v-for="(url, idx) in generatedImageUrls"
+                  :key="idx"
+                  cols="12"
+                  sm="4"
+                >
+                  <v-card variant="flat" border rounded="lg">
+                    <v-img
+                      :src="url"
+                      aspect-ratio="1"
+                      cover
+                      rounded="t-lg"
+                    >
+                      <template #placeholder>
+                        <div class="d-flex align-center justify-center fill-height">
+                          <v-progress-circular indeterminate color="deep-purple" />
+                        </div>
+                      </template>
+                    </v-img>
+                    <v-card-actions class="justify-center pa-2">
+                      <v-btn
+                        size="small"
+                        color="deep-purple"
+                        variant="tonal"
+                        prepend-icon="mdi-download"
+                        @click="downloadImage(url, idx)"
+                      >
+                        저장
+                      </v-btn>
+                    </v-card-actions>
+                  </v-card>
+                </v-col>
+              </v-row>
             </v-card-text>
           </v-card>
 
