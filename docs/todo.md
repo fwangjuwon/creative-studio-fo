@@ -1,8 +1,8 @@
 # TODO
 
 > **프로젝트**: ns-creative-studio-fo
-> **상태**: ✅ 전체 완료 (feat/history-detailize 반영 완료)
-> **최종 업데이트**: 2026-03-09 (BO feat/history-detailize 반영 — promptStyle, 이력 상세화)
+> **상태**: ✅ 전체 완료 (Step 8 — 인물 속성 관리 화면 구현 완료)
+> **최종 업데이트**: 2026-03-11 (Step 8 — `/manage/human-prompts` Step/Attr/Option CUD 구현)
 
 ---
 

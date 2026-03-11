@@ -20,7 +20,7 @@ NS Creative Studio 프론트엔드 화면 목록 및 설계 문서.
 | Role | 설명 | 접근 가능 화면 |
 |------|------|----------------|
 | `ADMIN` | 총 관리자 | 전체 화면 |
-| `MANAGER` | USER 권한 + 관리 기능 | 프롬프트 생성/이력 + 카테고리·태그 관리 |
+| `MANAGER` | USER 권한 + 관리 기능 | 프롬프트 생성/이력 + 카테고리·태그·인물 속성 관리 |
 | `USER` | 기본 사용자 | 프롬프트 생성, 팀 이력 조회 |
 
 ---
@@ -39,6 +39,7 @@ App.vue
     └── manage/           ← ADMIN / MANAGER만 접근
         ├── CategoryView.vue
         ├── TagView.vue
+        ├── HumanPromptStructureView.vue
         └── UserView.vue  ← ADMIN만 접근
 ```
 
@@ -244,9 +245,6 @@ App.vue
 ## 5. 라우터 구조 (목표)
 
 ```javascript
-// 현재 구현된 라우트: /, /auth/login
-// 추가 필요한 라우트:
-
 {
   path: '/',
   component: DefaultLayout,
@@ -259,6 +257,7 @@ App.vue
     // 관리 (MANAGER + ADMIN)
     { path: 'manage/categories', name: 'manage-categories', component: CategoryView, meta: { roles: ['MANAGER', 'ADMIN'] } },
     { path: 'manage/tags', name: 'manage-tags', component: TagView, meta: { roles: ['MANAGER', 'ADMIN'] } },
+    { path: 'manage/human-prompts', name: 'manage-human-prompts', component: HumanPromptStructureView, meta: { roles: ['MANAGER', 'ADMIN'] } },
     // 관리 (ADMIN only)
     { path: 'manage/users', name: 'manage-users', component: UserView, meta: { roles: ['ADMIN'] } },
   ],
