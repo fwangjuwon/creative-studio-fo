@@ -353,6 +353,23 @@ async function generatePersonImage() {
 }
 
 async function generatePersonPrompt(promptStyle = 'NANO_BANANA') {
+  // 필수 항목(required) 선택 여부 검증
+  const missingAttrs = []
+  for (const step of personSteps.value) {
+    for (const attr of step.attrs ?? []) {
+      if (attr.required) {
+        const selected = personSelectedOptions.value[attr.id]
+        if (!selected || selected.length === 0) {
+          missingAttrs.push(attr.name)
+        }
+      }
+    }
+  }
+  if (missingAttrs.length > 0) {
+    personErrorMessage.value = `필수 항목을 선택해 주세요: ${missingAttrs.join(', ')}`
+    return
+  }
+
   generatingPersonStyle.value = promptStyle
   personErrorMessage.value = ''
   generatedPersonPrompt.value = ''
