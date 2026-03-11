@@ -45,7 +45,6 @@ npm run build
 ```
 
 > ⚠️ 백엔드(ns-creative-studio-bo)가 8080 포트에서 실행 중이어야 API 연동 가능.
-> 백엔드 Step 4(JWT 인증)가 완료되어야 실제 로그인 연동 가능.
 
 ---
 
@@ -62,7 +61,7 @@ src/
 │   └── common/
 │       └── PageTitle.vue
 ├── layouts/
-│   ├── DefaultLayout.vue  # 로그인 후 공통 레이아웃 (사이드바/헤더 포함 예정)
+│   ├── DefaultLayout.vue  # 로그인 후 공통 레이아웃 (사이드바 + 헤더)
 │   └── AuthLayout.vue     # 로그인 전 레이아웃
 ├── plugins/
 │   └── vuetify.js
@@ -79,6 +78,7 @@ src/
 │   └── manage/
 │       ├── CategoryView.vue
 │       ├── TagView.vue
+│       ├── HumanPromptStructureView.vue
 │       └── UserView.vue
 ├── App.vue
 └── main.js
@@ -178,6 +178,7 @@ axios.get('http://localhost:8080/api/categories')
 | `/prompt/history` | 프롬프트 이력 | 공통 | ✅ 구현됨 |
 | `/manage/categories` | 카테고리 관리 | MANAGER+ | ✅ 구현됨 |
 | `/manage/tags` | 태그 관리 | MANAGER+ | ✅ 구현됨 |
+| `/manage/human-prompts` | 인물 속성 관리 | MANAGER+ | ✅ 구현됨 |
 | `/manage/users` | 사용자 관리 | ADMIN | ✅ 구현됨 |
 
 > 화면 상세 스펙: [`docs/pages.md`](docs/pages.md)

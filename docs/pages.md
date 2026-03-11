@@ -20,7 +20,7 @@ NS Creative Studio 프론트엔드 화면 목록 및 설계 문서.
 | Role | 설명 | 접근 가능 화면 |
 |------|------|----------------|
 | `ADMIN` | 총 관리자 | 전체 화면 |
-| `MANAGER` | USER 권한 + 관리 기능 | 프롬프트 생성/이력 + 카테고리·태그 관리 |
+| `MANAGER` | USER 권한 + 관리 기능 | 프롬프트 생성/이력 + 카테고리·태그·인물 속성 관리 |
 | `USER` | 기본 사용자 | 프롬프트 생성, 팀 이력 조회 |
 
 ---
@@ -39,6 +39,7 @@ App.vue
     └── manage/           ← ADMIN / MANAGER만 접근
         ├── CategoryView.vue
         ├── TagView.vue
+        ├── HumanPromptStructureView.vue
         └── UserView.vue  ← ADMIN만 접근
 ```
 
@@ -196,6 +197,32 @@ App.vue
 
 ---
 
+#### `/manage/human-prompts` — 인물 속성 관리
+- **레이아웃**: DefaultLayout
+- **접근 권한**: `MANAGER`, `ADMIN`
+- **기능**:
+  - 인물 프롬프트 구조 트리 표시 (Step → Attr → Option 3단계 계층)
+  - **Step 관리**: 추가 / 수정 / 삭제
+    - 생성 시 `stepCode` 지정 (생성 후 수정 불가)
+    - 삭제 시 하위 Attr 존재하면 오류 메시지 표시
+  - **Attr 관리**: Step 선택 후 Attr 추가 / 수정 / 삭제
+    - `isMultiSelect`: 복수 선택 허용 여부 (switch)
+    - `isRequired`: 필수 선택 여부 (switch)
+    - 삭제 시 하위 Option 존재하면 오류 메시지 표시
+  - **Option 관리**: Attr 확장 후 Option 추가 / 수정 / 삭제
+    - `name`: 화면 표시명 (한국어)
+    - `promptValue`: Gemini API에 전달할 영문값
+    - 삭제 시 프롬프트 이력 참조 중이면 오류 메시지 표시
+- **UI 레이아웃**: 2패널 — 왼쪽(Step 목록) + 오른쪽(Attr 확장 패널, 펼치면 Option 목록)
+- **API**:
+  - `GET /api/human-prompts/steps` — 전체 트리 조회
+  - `POST/PUT/DELETE /api/human-prompts/steps/{id}` — Step CUD
+  - `POST/PUT/DELETE /api/human-prompts/attrs/{id}` — Attr CUD
+  - `POST/PUT/DELETE /api/human-prompts/options/{id}` — Option CUD
+- **상태**: ✅ 구현됨
+
+---
+
 #### `/manage/users` — 사용자 관리
 - **레이아웃**: DefaultLayout
 - **접근 권한**: `ADMIN` 전용
@@ -218,9 +245,6 @@ App.vue
 ## 5. 라우터 구조 (목표)
 
 ```javascript
-// 현재 구현된 라우트: /, /auth/login
-// 추가 필요한 라우트:
-
 {
   path: '/',
   component: DefaultLayout,
@@ -233,6 +257,7 @@ App.vue
     // 관리 (MANAGER + ADMIN)
     { path: 'manage/categories', name: 'manage-categories', component: CategoryView, meta: { roles: ['MANAGER', 'ADMIN'] } },
     { path: 'manage/tags', name: 'manage-tags', component: TagView, meta: { roles: ['MANAGER', 'ADMIN'] } },
+    { path: 'manage/human-prompts', name: 'manage-human-prompts', component: HumanPromptStructureView, meta: { roles: ['MANAGER', 'ADMIN'] } },
     // 관리 (ADMIN only)
     { path: 'manage/users', name: 'manage-users', component: UserView, meta: { roles: ['ADMIN'] } },
   ],

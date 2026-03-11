@@ -21,6 +21,7 @@ const navItems = computed(() => {
     items.push(
       { title: '카테고리 관리', icon: 'mdi-tag-multiple', to: '/manage/categories' },
       { title: '태그 관리', icon: 'mdi-label-multiple', to: '/manage/tags' },
+      { title: '인물 속성 관리', icon: 'mdi-account-details', to: '/manage/human-prompts' },
     )
   }
 

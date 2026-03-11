@@ -1,8 +1,8 @@
 # TODO
 
 > **프로젝트**: ns-creative-studio-fo
-> **상태**: ✅ 전체 완료 (feat/history-detailize 반영 완료)
-> **최종 업데이트**: 2026-03-09 (BO feat/history-detailize 반영 — promptStyle, 이력 상세화)
+> **상태**: ✅ 전체 완료 (Step 8 — 인물 속성 관리 화면 구현 완료)
+> **최종 업데이트**: 2026-03-11 (Step 8 — `/manage/human-prompts` Step/Attr/Option CUD 구현)
 
 ---
 
@@ -210,6 +210,61 @@
 | `generatePrompt` | `onGeneratePrompt` |
 | `copyToClipboard` | `onCopyToClipboard` |
 | `regenerate` | `onRegenerate` |
+
+---
+
+## Step 8. 인물 프롬프트 구조 관리 화면 (`/manage/human-prompts`) ✅
+
+> **참고 API 명세**: `temp/frontend-human-prompt-step-attr-option-cud.md`  
+> **권한**: MANAGER+  
+> **도메인 구조**: Step → Attr → Option (3단계 계층)
+
+### 결정 사항
+
+- [x] **UI 레이아웃 방식** — **2패널 + 오른쪽 확장** (TagView 패턴 확장)
+  - 왼쪽: Step 목록 (고정 5개)
+  - 오른쪽: 선택된 Step의 Attr 목록, 각 Attr 행 펼치면 Option 목록 인라인 표시
+- [x] **네비게이션 메뉴명** — **"인물 속성 관리"**
+
+### 신규 파일 / 설정 변경
+
+- [x] `src/views/manage/HumanPromptStructureView.vue` 생성
+- [x] `src/router/index.js` — 라우트 추가 (`/manage/human-prompts`, MANAGER+, `manage-human-prompts`)
+- [x] `src/layouts/DefaultLayout.vue` — navItems에 메뉴 항목 추가 (MANAGER+ 조건)
+- [x] `docs/pages.md` — 화면 스펙 섹션 추가
+- [x] `CLAUDE.md` / `GEMINI.md` — 소스 구조·화면 목록 업데이트
+
+### 데이터 로드
+
+- [x] 마운트 시 `GET /api/human-prompts/steps` 로 전체 트리 로드
+
+### Step CUD
+
+- [x] Step 생성 다이얼로그 — `stepNumber`(number), `stepCode`(string), `name`(string)
+- [x] Step 수정 다이얼로그 — `stepNumber`, `name`만 수정 가능 (`stepCode` 필드 disabled 표시)
+- [x] Step 삭제 확인 다이얼로그 — 하위 Attr 존재 시 400 → `response.data.message` 표시
+
+### Attr CUD
+
+- [x] Attr 생성 다이얼로그 — `name`, `isMultiSelect`(switch), `isRequired`(switch), `sortOrder`(number)
+- [x] Attr 수정 다이얼로그 — 동일 필드 (`stepId` 변경 불가 — 폼에서 제외)
+- [x] Attr 삭제 확인 다이얼로그 — 하위 Option 존재 시 400 → `response.data.message` 표시
+
+### Option CUD
+
+- [x] Option 생성 다이얼로그 — `name`(한국어 표시명), `promptValue`(Gemini 전달 영문값), `sortOrder`(number)
+- [x] Option 수정 다이얼로그 — 동일 필드 (`attrId` 변경 불가 — 폼에서 제외)
+- [x] Option 삭제 확인 다이얼로그 — 이력 참조 중 400 → `response.data.message` 표시
+
+### ⚠️ 기술적 주의사항 (구현 시 반드시 확인)
+
+| 상황 | `isMultiSelect` 필드명 | `isRequired` 필드명 |
+|---|---|---|
+| `GET /api/human-prompts/steps` 조회 응답 | `multiSelect` (is 접두사 **없음**) | `required` (is 접두사 **없음**) |
+| `POST/PUT` 요청 body 및 응답 | `isMultiSelect` (is 접두사 **있음**) | `isRequired` (is 접두사 **있음**) |
+
+→ 수정 다이얼로그 open 시 GET 응답 데이터를 폼에 bind할 때 필드명 변환 필요  
+→ `attr.multiSelect` → `form.isMultiSelect`, `attr.required` → `form.isRequired`
 
 ---
 

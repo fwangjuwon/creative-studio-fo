@@ -36,6 +36,12 @@ const routes = [
         component: () => import('@/views/manage/TagView.vue'),
         meta: { roles: ['MANAGER', 'ADMIN'] },
       },
+      {
+        path: 'manage/human-prompts',
+        name: 'manage-human-prompts',
+        component: () => import('@/views/manage/HumanPromptStructureView.vue'),
+        meta: { roles: ['MANAGER', 'ADMIN'] },
+      },
       // 관리 — ADMIN 전용
       {
         path: 'manage/users',
