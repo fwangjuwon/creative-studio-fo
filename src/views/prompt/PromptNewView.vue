@@ -206,30 +206,6 @@ async function onGeneratePrompt(promptStyle = 'NANO_BANANA') {
   }
 }
 
-async function generateGoodsImage() {
-  if (!generatedPrompt.value) return
-  generatingGoodsImage.value = true
-  goodsImageErrorMessage.value = ''
-  generatedGoodsImageUrls.value = []
-
-  try {
-    const res = await api.post('/prompts/goods/generate-image', {
-      historyId: goodsPromptHistoryId.value,
-      promptText: generatedPrompt.value,
-    }, { timeout: 180000 })
-    generatedGoodsImageUrls.value = res.data.data?.imageUrls ?? []
-  } catch (err) {
-    if (err.code === 'ECONNABORTED') {
-      goodsImageErrorMessage.value = '이미지 생성 시간이 초과되었습니다. 다시 시도해 주세요.'
-    } else {
-      goodsImageErrorMessage.value =
-        err.response?.data?.message || '이미지 생성 중 오류가 발생했습니다.'
-    }
-  } finally {
-    generatingGoodsImage.value = false
-  }
-}
-
 async function onCopyToClipboard() {
   if (!generatedPrompt.value) return
   try {
@@ -266,7 +242,7 @@ async function generateGoodsImage() {
   if (!generatedPrompt.value) return
   generatingGoodsImage.value = true
   goodsImageErrorMessage.value = ''
-  generatedGoodsImageUrls.value = ''
+  generatedGoodsImageUrls.value = []
 
   try {
     const formData = new FormData()
@@ -279,10 +255,10 @@ async function generateGoodsImage() {
     }
 
     const res = await api.post('/prompts/goods/generate-image', formData, {
-      timeout: 120000,
+      timeout: 180000,
       headers: { 'Content-Type': 'multipart/form-data' },
     })
-    generatedGoodsImageUrls.value = res.data.data?.imageUrl ?? ''
+    generatedGoodsImageUrls.value = res.data.data?.imageUrls ?? []
   } catch (err) {
     if (err.code === 'ECONNABORTED') {
       goodsImageErrorMessage.value = '이미지 생성 시간이 초과되었습니다. 다시 시도해 주세요.'
@@ -803,6 +779,7 @@ async function copyPersonToClipboard() {
                 :disabled="generatingGoodsImage"
                 @click="generateGoodsImage"
               >
+                이미지 생성 (NanoBanana)
               </v-btn>
             </div>
           </v-card-text>
