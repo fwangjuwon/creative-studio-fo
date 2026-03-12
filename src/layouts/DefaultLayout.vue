@@ -110,7 +110,11 @@ function onLogout() {
     <!-- 메인 콘텐츠 -->
     <v-main>
       <v-container fluid class="pa-6">
-        <router-view />
+        <router-view v-slot="{Component}">
+          <keep-alive include="PromptNewView">
+            <component :is="Component"></component>
+          </keep-alive>
+        </router-view>
       </v-container>
     </v-main>
   </v-app>
