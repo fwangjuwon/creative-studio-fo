@@ -1,8 +1,8 @@
 # TODO
 
 > **프로젝트**: ns-creative-studio-fo
-> **상태**: ✅ 전체 완료 (Step 8 — 인물 속성 관리 화면 구현 완료)
-> **최종 업데이트**: 2026-03-11 (Step 8 — `/manage/human-prompts` Step/Attr/Option CUD 구현)
+> **상태**: ✅ 전체 완료 (Step 9 — 사용자 사용량 표시 구현 완료)
+> **최종 업데이트**: 2026-03-12 (Step 9 — 홈 화면 & 사용자 관리 화면 사용량 표시 구현)
 
 ---
 
@@ -265,6 +265,30 @@
 
 → 수정 다이얼로그 open 시 GET 응답 데이터를 폼에 bind할 때 필드명 변환 필요  
 → `attr.multiSelect` → `form.isMultiSelect`, `attr.required` → `form.isRequired`
+
+---
+
+---
+
+## Step 9. 사용자 사용량 표시 ✅
+
+> **배경**: 백엔드에 사용량 조회 API 신규 추가 (`GET /api/users/me/usage`, `GET /api/users/usage`)
+
+### 홈 화면 (`HomeView.vue`) ✅
+
+- [x] `GET /api/users/me/usage` 연동 — 본인 금일 사용량 조회
+- [x] 사용자 정보 카드에 **오늘 사용량: N / M** 표시
+- [x] `remainingCount === 0` 시 경고 알림 표시 (error 색상)
+- [x] 로딩 중 `v-progress-circular` 표시, 실패 시 `-` 표시
+
+### 사용자 관리 화면 (`UserView.vue`) ✅
+
+- [x] `GET /api/users/usage` 연동 — 전체 회원 사용량 목록 조회 (ADMIN 전용)
+- [x] `usageMap` 빌드 (`userId` 기준 매핑)
+- [x] `GET /api/users` + `GET /api/users/usage` 병렬 호출 (`Promise.all`) — 응답 시간 최소화
+- [x] 생성/수정/삭제/검색 후 재조회 시 `loadAll()`로 통일
+- [x] 테이블에 **금일 사용량** 컬럼 추가 (`todayUsedCount / dailyLimit` 표시)
+- [x] `remainingCount === 0` 시 빨간 볼드 텍스트 강조
 
 ---
 
