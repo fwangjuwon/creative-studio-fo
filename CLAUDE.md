@@ -173,7 +173,7 @@ axios.get('http://localhost:8080/api/categories')
 | 경로 | 화면 | 권한 | 상태 |
 |------|------|------|------|
 | `/auth/login` | 로그인 | 공통 | ✅ 구현됨 |
-| `/` | 대시보드 | 공통 | 🟡 틀만 |
+| `/` | 대시보드 | 공통 | ✅ 구현됨 |
 | `/prompt/new` | 프롬프트 생성 | 공통 | ✅ 구현됨 |
 | `/prompt/history` | 프롬프트 이력 | 공통 | ✅ 구현됨 |
 | `/manage/categories` | 카테고리 관리 | MANAGER+ | ✅ 구현됨 |

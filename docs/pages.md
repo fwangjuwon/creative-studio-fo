@@ -67,10 +67,11 @@ App.vue
 - **레이아웃**: DefaultLayout
 - **접근 권한**: 로그인 필수 (전 역할 공통)
 - **기능**:
-  - 서비스 소개 / 빠른 메뉴 진입
-  - 오늘 프롬프트 생성 횟수 / 남은 횟수 표시 (USER 기준)
-- **API**: 별도 API 없음 (또는 사용자 정보 활용)
-- **상태**: 🟡 기본 틀 구현됨, 내용 미구현
+  - 사용자 정보 카드 (role 뱃지, loginId)
+  - 오늘 사용량: `todayUsedCount / dailyLimit` 표시
+  - `remainingCount === 0` 시 한도 도달 경고 알림 표시
+- **API**: `GET /api/users/me/usage`
+- **상태**: ✅ 구현됨
 
 ---
 
@@ -227,14 +228,15 @@ App.vue
 - **레이아웃**: DefaultLayout
 - **접근 권한**: `ADMIN` 전용
 - **기능**:
-  - 사용자 목록 (이름, ID, 팀명, 역할, 일일 한도)
+  - 사용자 목록 (ID, 로그인 ID, 이름, 권한, 팀, 일일 한도, **금일 사용량**, 등록일)
+  - 금일 사용량: `todayUsedCount / dailyLimit` 표시, `remainingCount === 0` 시 빨간 강조
   - 검색 필터 (이름, 팀명, 역할)
   - 사용자 추가 (ADMIN만 생성 가능 — Closed 방식)
   - 사용자 수정 (이름, 역할, 팀명, 일일 한도, 비밀번호)
   - 사용자 삭제
 - **API**:
-  - `GET /api/users`
-  - `GET /api/users?name=&teamName=&role=`
+  - `GET /api/users?name=&teamName=&role=` — 회원 목록
+  - `GET /api/users/usage` — 전체 회원 사용량 (병렬 호출, `userId` 기준 매핑)
   - `POST /api/users`
   - `PUT /api/users/{id}`
   - `DELETE /api/users/{id}`

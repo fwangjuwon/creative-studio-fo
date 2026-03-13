@@ -9,6 +9,10 @@ import api from '@/api'
 // 사용자 목록 데이터 및 로딩 상태
 const users = ref([])
 const listLoading = ref(false)
+const listError = ref('')
+
+// userId → { todayUsedCount, remainingCount } 매핑 테이블
+const usageMap = ref({})
 
 // 검색 조건 (이름 부분일치 / 팀명 완전일치 / 권한 완전일치)
 const searchForm = ref({ name: '', teamName: '', role: '' })
@@ -20,7 +24,8 @@ const headers = [
   { title: '이름', key: 'name', sortable: false },
   { title: '권한', key: 'role', width: '110px', sortable: false },
   { title: '팀', key: 'teamName', sortable: false },
-  { title: '일일 한도', key: 'dailyLimit', width: '100px', sortable: false },
+  { title: '일일 한도', key: 'dailyLimit', width: '100px', sortable: false, align: 'center' },
+  { title: '금일 사용량', key: 'todayUsage', width: '120px', sortable: false, align: 'center' },
   { title: '등록일', key: 'initRegiDttm', width: '160px', sortable: false },
   { title: '관리', key: 'actions', width: '100px', sortable: false, align: 'center' },
 ]
@@ -30,20 +35,41 @@ const ROLE_OPTIONS = ['ADMIN', 'MANAGER', 'USER']
 const ROLE_COLORS = { ADMIN: 'error', MANAGER: 'warning', USER: 'primary' }
 
 /**
- * GET /api/users — 사용자 목록 조회
- * 값이 있는 검색 조건만 쿼리 파라미터로 전송
+ * GET /api/users/usage — 전체 회원 사용량 목록 조회 (ADMIN 전용)
+ * userId 기준으로 usageMap 빌드
  */
-async function fetchUsers() {
+async function fetchUsage() {
+  try {
+    const res = await api.get('/users/usage')
+    const list = res.data.data ?? []
+    usageMap.value = Object.fromEntries(
+      list.map(u => [u.userId, { todayUsedCount: u.todayUsedCount, remainingCount: u.remainingCount }])
+    )
+  } catch {
+    usageMap.value = {}
+  }
+}
+
+/**
+ * 목록 + 사용량 병렬 조회
+ * 검색 조건 적용, 생성/수정/삭제 후 재조회 시 공통 사용
+ */
+async function loadAll() {
   listLoading.value = true
+  listError.value = ''
   try {
     const params = {}
     if (searchForm.value.name) params.name = searchForm.value.name
     if (searchForm.value.teamName) params.teamName = searchForm.value.teamName
     if (searchForm.value.role) params.role = searchForm.value.role
-    const res = await api.get('/users', { params })
-    users.value = res.data.data ?? []
+    const [usersRes] = await Promise.all([
+      api.get('/users', { params }),
+      fetchUsage(),
+    ])
+    users.value = usersRes.data.data ?? []
   } catch {
     users.value = []
+    listError.value = '사용자 목록을 불러오는 중 오류가 발생했습니다.'
   } finally {
     listLoading.value = false
   }
@@ -52,7 +78,7 @@ async function fetchUsers() {
 // 검색 조건 초기화 후 전체 목록 다시 조회
 function onSearchReset() {
   searchForm.value = { name: '', teamName: '', role: '' }
-  fetchUsers()
+  loadAll()
 }
 
 // 날짜시간 포맷 (ISO → 한국 로컬)
@@ -64,8 +90,8 @@ function formatDateTime(dt) {
   })
 }
 
-// 컴포넌트 마운트 시 전체 목록 로드
-onMounted(fetchUsers)
+// 컴포넌트 마운트 시 전체 목록 + 사용량 로드
+onMounted(loadAll)
 
 // ───────────────────────────────────────────────
 // 생성 다이얼로그
@@ -108,7 +134,7 @@ async function onCreateSubmit() {
       dailyLimit: Number(createForm.value.dailyLimit),
     })
     createDialog.value = false
-    await fetchUsers() // 목록 갱신
+    await loadAll()
   } catch (err) {
     createError.value = err.response?.data?.message || '사용자 생성 중 오류가 발생했습니다.'
   } finally {
@@ -164,7 +190,7 @@ async function onEditSubmit() {
     }
     await api.put(`/users/${editTarget.value.id}`, payload)
     editDialog.value = false
-    await fetchUsers() // 목록 갱신
+    await loadAll()
   } catch (err) {
     editError.value = err.response?.data?.message || '사용자 수정 중 오류가 발생했습니다.'
   } finally {
@@ -197,7 +223,7 @@ async function onDeleteSubmit() {
   try {
     await api.delete(`/users/${deleteTarget.value.id}`)
     deleteDialog.value = false
-    await fetchUsers() // 목록 갱신
+    await loadAll()
   } catch (err) {
     deleteError.value = err.response?.data?.message || '사용자 삭제 중 오류가 발생했습니다.'
   } finally {
@@ -235,7 +261,7 @@ async function onDeleteSubmit() {
             clearable
             hide-details
             prepend-inner-icon="mdi-magnify"
-            @keyup.enter="fetchUsers"
+            @keyup.enter="loadAll"
           />
         </v-col>
         <!-- 팀명 검색 (완전일치) -->
@@ -248,7 +274,7 @@ async function onDeleteSubmit() {
             clearable
             hide-details
             prepend-inner-icon="mdi-account-group-outline"
-            @keyup.enter="fetchUsers"
+            @keyup.enter="loadAll"
           />
         </v-col>
         <!-- 권한 필터 (완전일치) -->
@@ -264,11 +290,24 @@ async function onDeleteSubmit() {
           />
         </v-col>
         <v-col cols="12" sm="2" class="d-flex gap-2">
-          <v-btn color="primary" variant="flat" @click="fetchUsers">검색</v-btn>
+          <v-btn color="primary" variant="flat" @click="loadAll">검색</v-btn>
           <v-btn variant="tonal" @click="onSearchReset">초기화</v-btn>
         </v-col>
       </v-row>
     </v-card>
+
+    <!-- 목록 조회 실패 시 에러 알림 -->
+    <v-alert
+      v-if="listError"
+      type="error"
+      variant="tonal"
+      density="compact"
+      class="mb-4"
+      closable
+      @click:close="listError = ''"
+    >
+      {{ listError }}
+    </v-alert>
 
     <!-- ─── 사용자 테이블 ─── -->
     <v-card variant="outlined">
@@ -295,6 +334,18 @@ async function onDeleteSubmit() {
         <!-- 팀명이 없으면 '-' 표시 -->
         <template #item.teamName="{ item }">
           {{ item.teamName || '-' }}
+        </template>
+
+        <!-- 금일 사용량: todayUsedCount / dailyLimit, 한도 도달 시 빨간 강조 -->
+        <template #item.todayUsage="{ item }">
+          <template v-if="usageMap[item.id]">
+            <span
+              :class="usageMap[item.id].remainingCount === 0 ? 'text-error font-weight-bold' : ''"
+            >
+              {{ usageMap[item.id].todayUsedCount }} / {{ item.dailyLimit }}
+            </span>
+          </template>
+          <span v-else class="text-disabled">-</span>
         </template>
 
         <!-- 등록일 포맷 변환 -->
