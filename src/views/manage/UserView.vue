@@ -9,6 +9,7 @@ import api from '@/api'
 // 사용자 목록 데이터 및 로딩 상태
 const users = ref([])
 const listLoading = ref(false)
+const listError = ref('')
 
 // userId → { todayUsedCount, remainingCount } 매핑 테이블
 const usageMap = ref({})
@@ -55,6 +56,7 @@ async function fetchUsage() {
  */
 async function loadAll() {
   listLoading.value = true
+  listError.value = ''
   try {
     const params = {}
     if (searchForm.value.name) params.name = searchForm.value.name
@@ -67,6 +69,7 @@ async function loadAll() {
     users.value = usersRes.data.data ?? []
   } catch {
     users.value = []
+    listError.value = '사용자 목록을 불러오는 중 오류가 발생했습니다.'
   } finally {
     listLoading.value = false
   }
@@ -292,6 +295,19 @@ async function onDeleteSubmit() {
         </v-col>
       </v-row>
     </v-card>
+
+    <!-- 목록 조회 실패 시 에러 알림 -->
+    <v-alert
+      v-if="listError"
+      type="error"
+      variant="tonal"
+      density="compact"
+      class="mb-4"
+      closable
+      @click:close="listError = ''"
+    >
+      {{ listError }}
+    </v-alert>
 
     <!-- ─── 사용자 테이블 ─── -->
     <v-card variant="outlined">
