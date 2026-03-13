@@ -145,6 +145,12 @@ const allSelectedTagIds = computed(() => {
 })
 
 // ───────────────────────────────────────────────
+// Tab 1 추가 옵션
+// ───────────────────────────────────────────────
+const productPurpose = ref('')
+const productAdditionalNotes = ref('')
+
+// ───────────────────────────────────────────────
 // Tab 1 프롬프트 생성
 // ───────────────────────────────────────────────
 const canGenerate = computed(() => !!selectedDcs.value)
@@ -160,9 +166,11 @@ const copied = ref(false)
 // ───────────────────────────────────────────────
 // Tab 1 이미지 생성 (NanoBanana)
 // ───────────────────────────────────────────────
-const generatingGoodsImage = ref(false)
 const generatedGoodsImageUrls = ref([])
+const generatingGoodsImage = ref(false)
 const goodsImageErrorMessage = ref('')
+const goodsReferenceImage = ref(null)       // File 객체
+const goodsReferenceImagePreview = ref('')  // ObjectURL (미리보기)
 
 async function onGeneratePrompt(promptStyle = 'NANO_BANANA') {
   if (!canGenerate.value) return
@@ -177,10 +185,14 @@ async function onGeneratePrompt(promptStyle = 'NANO_BANANA') {
       goodsCategoryId: selectedDcs.value,
       tagIds: allSelectedTagIds.value,
       promptStyle,
+      purpose: productPurpose.value || null,
+      additionalNotes: productAdditionalNotes.value || null,
     })
     goodsPromptHistoryId.value = res.data.data?.id ?? null
     generatedPrompt.value = res.data.data?.promptText ?? res.data.data ?? ''
+
     generatedStyle.value = promptStyle
+    generatedGoodsImageUrls.value = ''   // 재생성 시 이전 이미지 초기화
   } catch (err) {
     const code = err.response?.data?.code
     if (code === 'P001') {
@@ -191,30 +203,6 @@ async function onGeneratePrompt(promptStyle = 'NANO_BANANA') {
     }
   } finally {
     generatingStyle.value = null
-  }
-}
-
-async function generateGoodsImage() {
-  if (!generatedPrompt.value) return
-  generatingGoodsImage.value = true
-  goodsImageErrorMessage.value = ''
-  generatedGoodsImageUrls.value = []
-
-  try {
-    const res = await api.post('/prompts/goods/generate-image', {
-      historyId: goodsPromptHistoryId.value,
-      promptText: generatedPrompt.value,
-    }, { timeout: 180000 })
-    generatedGoodsImageUrls.value = res.data.data?.imageUrls ?? []
-  } catch (err) {
-    if (err.code === 'ECONNABORTED') {
-      goodsImageErrorMessage.value = '이미지 생성 시간이 초과되었습니다. 다시 시도해 주세요.'
-    } else {
-      goodsImageErrorMessage.value =
-        err.response?.data?.message || '이미지 생성 중 오류가 발생했습니다.'
-    }
-  } finally {
-    generatingGoodsImage.value = false
   }
 }
 
@@ -238,6 +226,49 @@ async function onCopyToClipboard() {
 
 function onRegenerate() {
   onGeneratePrompt(generatedStyle.value || 'NANO_BANANA')
+}
+
+function onGoodsReferenceImageChange(file) {
+  if (!file) {
+    goodsReferenceImage.value = null
+    goodsReferenceImagePreview.value = ''
+    return
+  }
+  goodsReferenceImage.value = file
+  goodsReferenceImagePreview.value = URL.createObjectURL(file)
+}
+
+async function generateGoodsImage() {
+  if (!generatedPrompt.value) return
+  generatingGoodsImage.value = true
+  goodsImageErrorMessage.value = ''
+  generatedGoodsImageUrls.value = []
+
+  try {
+    const formData = new FormData()
+    if (goodsPromptHistoryId.value != null) {
+      formData.append('historyId', goodsPromptHistoryId.value)
+    }
+    formData.append('promptText', generatedPrompt.value)
+    if (goodsReferenceImage.value) {
+      formData.append('referenceImage', goodsReferenceImage.value)
+    }
+
+    const res = await api.post('/prompts/goods/generate-image', formData, {
+      timeout: 180000,
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    generatedGoodsImageUrls.value = res.data.data?.imageUrls ?? []
+  } catch (err) {
+    if (err.code === 'ECONNABORTED') {
+      goodsImageErrorMessage.value = '이미지 생성 시간이 초과되었습니다. 다시 시도해 주세요.'
+    } else {
+      goodsImageErrorMessage.value =
+        err.response?.data?.message || '이미지 생성 중 오류가 발생했습니다.'
+    }
+  } finally {
+    generatingGoodsImage.value = false
+  }
 }
 
 
@@ -538,50 +569,115 @@ async function copyPersonToClipboard() {
           </v-card-text>
         </v-card>
 
-        <!-- ─── 태그 선택 ─── -->
+        <!-- ─── 태그 선택 + 참조 이미지 (가로 배치) ─── -->
+        <div class="d-flex align-stretch gap-6 mb-4">
+
+          <!-- 태그 선택: 70% -->
+          <v-card variant="outlined" style="flex: 0 0 68%; min-width: 0;">
+            <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+              <v-icon start>mdi-label-multiple</v-icon>
+              태그 선택
+              <span class="text-caption text-medium-emphasis ml-2">(선택 사항)</span>
+            </v-card-title>
+            <v-card-text>
+              <v-progress-circular v-if="loadingTags" indeterminate color="primary" class="d-block mx-auto my-4" />
+              <template v-else-if="tagGroups.length === 0">
+                <v-alert type="info" variant="tonal" density="compact">등록된 태그 그룹이 없습니다.</v-alert>
+              </template>
+              <template v-else>
+                <div
+                  v-for="group in tagGroups"
+                  :key="group.id"
+                  class="mb-4"
+                >
+                  <div class="d-flex align-center mb-2">
+                    <span class="text-body-2 font-weight-medium">{{ group.name }}</span>
+                    <v-chip
+                      size="x-small"
+                      :color="group.isMultiSelect ? 'blue' : 'purple'"
+                      class="ml-2"
+                      variant="tonal"
+                    >
+                      {{ group.isMultiSelect ? '복수 선택' : '단일 선택' }}
+                    </v-chip>
+                  </div>
+                  <div class="d-flex flex-wrap gap-2">
+                    <v-chip
+                      v-for="tag in tagsByGroup[group.id]"
+                      :key="tag.id"
+                      :color="isTagSelected(group, tag.id) ? 'primary' : 'default'"
+                      :variant="isTagSelected(group, tag.id) ? 'flat' : 'outlined'"
+                      class="cursor-pointer"
+                      @click="onTagToggle(group, tag.id)"
+                    >
+                      {{ tag.name }}
+                    </v-chip>
+                  </div>
+                  <v-divider v-if="tagGroups.indexOf(group) < tagGroups.length - 1" class="mt-4" />
+                </div>
+              </template>
+            </v-card-text>
+          </v-card>
+
+          <!-- 참조 이미지: 나머지 30% -->
+          <v-card variant="outlined" style="flex: 1 1 0; min-width: 0; margin-left: 8px;">
+            <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+              <v-icon start>mdi-image-plus</v-icon>
+              참조 이미지
+              <span class="text-caption text-medium-emphasis ml-2">(선택 사항)</span>
+            </v-card-title>
+            <v-card-text>
+              <v-file-input
+                label="이미지 첨부"
+                accept="image/*"
+                prepend-icon="mdi-image-plus"
+                variant="outlined"
+                density="comfortable"
+                hide-details
+                clearable
+                @update:model-value="onGoodsReferenceImageChange"
+              />
+              <div v-if="goodsReferenceImagePreview" class="mt-3 text-center">
+                <img
+                  :src="goodsReferenceImagePreview"
+                  style="max-width: 100%; max-height: 160px; border-radius: 6px; border: 1px solid #e0e0e0;"
+                  alt="참조 이미지 미리보기"
+                />
+              </div>
+            </v-card-text>
+          </v-card>
+
+        </div>
+
+        <!-- ─── 추가 옵션 ─── -->
         <v-card class="mb-4" variant="outlined">
           <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
-            <v-icon start>mdi-label-multiple</v-icon>
-            태그 선택
+            <v-icon start>mdi-tune</v-icon>
+            추가 옵션
             <span class="text-caption text-medium-emphasis ml-2">(선택 사항)</span>
           </v-card-title>
           <v-card-text>
-            <v-progress-circular v-if="loadingTags" indeterminate color="primary" class="d-block mx-auto my-4" />
-            <template v-else-if="tagGroups.length === 0">
-              <v-alert type="info" variant="tonal" density="compact">등록된 태그 그룹이 없습니다.</v-alert>
-            </template>
-            <template v-else>
-              <div
-                v-for="group in tagGroups"
-                :key="group.id"
-                class="mb-4"
-              >
-                <div class="d-flex align-center mb-2">
-                  <span class="text-body-2 font-weight-medium">{{ group.name }}</span>
-                  <v-chip
-                    size="x-small"
-                    :color="group.isMultiSelect ? 'blue' : 'purple'"
-                    class="ml-2"
-                    variant="tonal"
-                  >
-                    {{ group.isMultiSelect ? '복수 선택' : '단일 선택' }}
-                  </v-chip>
-                </div>
-                <div class="d-flex flex-wrap gap-2">
-                  <v-chip
-                    v-for="tag in tagsByGroup[group.id]"
-                    :key="tag.id"
-                    :color="isTagSelected(group, tag.id) ? 'primary' : 'default'"
-                    :variant="isTagSelected(group, tag.id) ? 'flat' : 'outlined'"
-                    class="cursor-pointer"
-                    @click="onTagToggle(group, tag.id)"
-                  >
-                    {{ tag.name }}
-                  </v-chip>
-                </div>
-                <v-divider v-if="tagGroups.indexOf(group) < tagGroups.length - 1" class="mt-4" />
-              </div>
-            </template>
+            <v-text-field
+              v-model="productPurpose"
+              label="생성 목적"
+              placeholder="예: SNS 광고용, 커머스 상세페이지, 포트폴리오"
+              variant="outlined"
+              density="comfortable"
+              clearable
+              hide-details
+              class="mb-4"
+            />
+            <v-textarea
+              v-model="productAdditionalNotes"
+              label="추가 지시 사항"
+              placeholder="Gemini에게 직접 전달할 내용을 자유롭게 입력하세요"
+              variant="outlined"
+              density="comfortable"
+              rows="2"
+              auto-grow
+              clearable
+              hide-details
+            />
           </v-card-text>
         </v-card>
 
@@ -680,6 +776,7 @@ async function copyPersonToClipboard() {
                 variant="tonal"
                 prepend-icon="mdi-image-spark"
                 :loading="generatingGoodsImage"
+                :disabled="generatingGoodsImage"
                 @click="generateGoodsImage"
               >
                 이미지 생성 (NanoBanana)
@@ -699,7 +796,6 @@ async function copyPersonToClipboard() {
         >
           {{ goodsImageErrorMessage }}
         </v-alert>
-
         <!-- ─── 생성된 이미지 (3개 그리드) ─── -->
         <v-card v-if="generatedGoodsImageUrls.length" variant="outlined" class="mb-4">
           <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
