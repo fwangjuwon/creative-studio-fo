@@ -90,15 +90,6 @@ onMounted(fetchHistories)
     <div class="d-flex align-center mb-6">
       <h2 class="text-h5 font-weight-bold">프롬프트 이력</h2>
       <v-spacer />
-      <v-btn
-        variant="tonal"
-        color="primary"
-        prepend-icon="mdi-refresh"
-        :loading="loading"
-        @click="fetchHistories"
-      >
-        새로고침
-      </v-btn>
     </div>
 
     <!-- 에러 -->

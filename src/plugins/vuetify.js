@@ -8,10 +8,12 @@ export default createVuetify({
     themes: {
       light: {
         colors: {
-          primary: '#1976D2',
-          secondary: '#424242',
-          accent: '#82B1FF',
-          error: '#FF5252',
+          primary: '#F0C3C1',
+          'on-primary': '#5A2D2D',
+          secondary: '#9D6D6F',
+          'on-secondary': '#ffffff',
+          accent: '#FFF0EF',
+          error: '#C62828',
           info: '#2196F3',
           success: '#4CAF50',
           warning: '#FFC107',
@@ -19,10 +21,12 @@ export default createVuetify({
       },
       dark: {
         colors: {
-          primary: '#2196F3',
-          secondary: '#616161',
-          accent: '#FF4081',
-          error: '#FF5252',
+          primary: '#E8A09D',
+          'on-primary': '#3B1A1A',
+          secondary: '#B08082',
+          'on-secondary': '#ffffff',
+          accent: '#FBE4E3',
+          error: '#C62828',
           info: '#2196F3',
           success: '#4CAF50',
           warning: '#FFC107',

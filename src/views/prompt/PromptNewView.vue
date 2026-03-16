@@ -1,11 +1,20 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, inject } from 'vue'
+import { useRoute } from 'vue-router'
 import api from '@/api'
+
+const route = useRoute()
+const refreshUsage = inject('refreshUsage', () => {})
 
 // ───────────────────────────────────────────────
 // 탭 관리
 // ───────────────────────────────────────────────
+// 홈에서 카드 클릭 시 ?tab=product 또는 ?tab=person query로 탭 반영
+// immediate: true — 최초 마운트 + keep-alive 재활성화 + query 변경 모두 대응
 const activeTab = ref('product')
+watch(() => route.query.tab, (tab) => {
+  activeTab.value = tab === 'person' ? 'person' : 'product'
+}, { immediate: true })
 
 // ═══════════════════════════════════════════════
 // TAB 1: 상품 사진 프롬프트
@@ -193,6 +202,7 @@ async function onGeneratePrompt(promptStyle = 'NANO_BANANA') {
 
     generatedStyle.value = promptStyle
     generatedGoodsImageUrls.value = ''   // 재생성 시 이전 이미지 초기화
+    refreshUsage()  // 앱바 사용량 즉시 갱신
   } catch (err) {
     const code = err.response?.data?.code
     if (code === 'P001') {
@@ -334,6 +344,20 @@ function isPersonOptionSelected(attrId, optionId) {
   return personSelectedOptions.value[attrId]?.includes(optionId) ?? false
 }
 
+// 필수 항목이 모두 선택됐을 때만 생성 버튼 활성화
+const canGeneratePerson = computed(() => {
+  if (!stepsLoaded.value) return false
+  for (const step of personSteps.value) {
+    for (const attr of step.attrs ?? []) {
+      if (attr.required) {
+        const selected = personSelectedOptions.value[attr.id]
+        if (!selected || selected.length === 0) return false
+      }
+    }
+  }
+  return true
+})
+
 // ───────────────────────────────────────────────
 // Tab 2 생성 목적 / 추가 지시
 // ───────────────────────────────────────────────
@@ -426,12 +450,65 @@ async function generatePersonPrompt(promptStyle = 'NANO_BANANA') {
     personPromptHistoryId.value = res.data.data?.id ?? null
     generatedPersonPrompt.value = res.data.data?.promptText ?? ''
     generatedPersonStyle.value = promptStyle
+    refreshUsage()  // 앱바 사용량 즉시 갱신
   } catch (err) {
     personErrorMessage.value =
       err.response?.data?.message || '프롬프트 생성 중 오류가 발생했습니다.'
   } finally {
     generatingPersonStyle.value = null
   }
+}
+
+// ───────────────────────────────────────────────
+// 초기화
+// ───────────────────────────────────────────────
+const fileInputKey = ref(0)   // v-file-input 강제 리렌더링용
+
+function resetProduct() {
+  selectedLcs.value = null
+  selectedMcs.value = null
+  selectedScs.value = null
+  selectedDcs.value = null
+  mcsItems.value = []
+  scsItems.value = []
+  dcsItems.value = []
+  for (const group of tagGroups.value) {
+    selectedTags.value[group.id] = group.isMultiSelect ? [] : null
+  }
+  productPurpose.value = ''
+  productAdditionalNotes.value = ''
+  generatedPrompt.value = ''
+  generatedStyle.value = ''
+  goodsPromptHistoryId.value = null
+  goodsReferenceImage.value = null
+  goodsReferenceImagePreview.value = ''
+  generatedGoodsImageUrls.value = []
+  errorMessage.value = ''
+  goodsImageErrorMessage.value = ''
+  copied.value = false
+  fileInputKey.value++   // file input 초기화
+}
+
+function resetPerson() {
+  for (const step of personSteps.value) {
+    for (const attr of step.attrs ?? []) {
+      personSelectedOptions.value[attr.id] = []
+    }
+  }
+  personPurpose.value = ''
+  personAdditionalNotes.value = ''
+  generatedPersonPrompt.value = ''
+  generatedPersonStyle.value = ''
+  personPromptHistoryId.value = null
+  generatedImageUrls.value = []
+  personErrorMessage.value = ''
+  imageErrorMessage.value = ''
+  personCopied.value = false
+}
+
+function onReset() {
+  if (activeTab.value === 'product') resetProduct()
+  else resetPerson()
 }
 
 // ───────────────────────────────────────────────
@@ -476,7 +553,19 @@ async function copyPersonToClipboard() {
 
 <template>
   <div>
-    <h2 class="text-h5 font-weight-bold mb-4">프롬프트 생성</h2>
+    <div class="d-flex align-center mb-4">
+      <h2 class="text-h5 font-weight-bold">프롬프트 생성</h2>
+      <v-spacer />
+      <v-btn
+        variant="tonal"
+        color="secondary"
+        size="small"
+        prepend-icon="mdi-refresh"
+        @click="onReset"
+      >
+        초기화
+      </v-btn>
+    </div>
 
     <!-- ─── 탭 전환 ─── -->
     <v-tabs v-model="activeTab" color="primary" class="mb-6">
@@ -628,6 +717,7 @@ async function copyPersonToClipboard() {
             </v-card-title>
             <v-card-text>
               <v-file-input
+                :key="fileInputKey"
                 label="이미지 첨부"
                 accept="image/*"
                 prepend-icon="mdi-image-plus"
@@ -684,7 +774,7 @@ async function copyPersonToClipboard() {
         <!-- ─── 생성 버튼 (NanoBanana / MidJourney) ─── -->
         <div class="d-flex justify-center gap-3 mb-6 flex-wrap">
           <v-btn
-            color="primary"
+            color="deep-purple"
             size="large"
             :disabled="!canGenerate || (generating && generatingStyle !== 'NANO_BANANA')"
             :loading="generatingStyle === 'NANO_BANANA'"
@@ -962,7 +1052,7 @@ async function copyPersonToClipboard() {
               color="deep-purple"
               size="large"
               :loading="generatingPersonStyle === 'NANO_BANANA'"
-              :disabled="generatingPerson && generatingPersonStyle !== 'NANO_BANANA'"
+              :disabled="!canGeneratePerson || (generatingPerson && generatingPersonStyle !== 'NANO_BANANA')"
               prepend-icon="mdi-creation"
               @click="generatePersonPrompt('NANO_BANANA')"
             >
@@ -972,7 +1062,7 @@ async function copyPersonToClipboard() {
               color="teal"
               size="large"
               :loading="generatingPersonStyle === 'MID_JOURNEY'"
-              :disabled="generatingPerson && generatingPersonStyle !== 'MID_JOURNEY'"
+              :disabled="!canGeneratePerson || (generatingPerson && generatingPersonStyle !== 'MID_JOURNEY')"
               prepend-icon="mdi-format-list-bulleted"
               @click="generatePersonPrompt('MID_JOURNEY')"
             >

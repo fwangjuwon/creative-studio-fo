@@ -28,7 +28,7 @@ async function onLogin() {
 <template>
   <v-card rounded="xl" elevation="8" class="pa-4">
     <v-card-item class="text-center pb-0">
-      <v-icon color="primary" size="48" class="mb-2">mdi-palette</v-icon>
+      <v-icon size="48" class="mb-2" style="color: #9D6D6F;">mdi-palette</v-icon>
       <v-card-title class="text-h5 font-weight-bold">NS Creative Studio</v-card-title>
       <v-card-subtitle>계정에 로그인하세요</v-card-subtitle>
     </v-card-item>
