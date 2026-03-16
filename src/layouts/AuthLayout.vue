@@ -14,6 +14,6 @@
 
 <style scoped>
 .auth-main {
-  background: linear-gradient(135deg, #1976D2 0%, #42A5F5 100%);
+  background: linear-gradient(135deg, #FDE8E7 0%, #F0C3C1 50%, #D4A0A2 100%);
 }
 </style>
