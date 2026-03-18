@@ -26,17 +26,14 @@ watch(() => route.query.tab, (tab) => {
 const lcsItems = ref([])
 const mcsItems = ref([])
 const scsItems = ref([])
-const dcsItems = ref([])
 
 const selectedLcs = ref(null)
 const selectedMcs = ref(null)
 const selectedScs = ref(null)
-const selectedDcs = ref(null)
 
 const loadingLcs = ref(false)
 const loadingMcs = ref(false)
 const loadingScs = ref(false)
-const loadingDcs = ref(false)
 
 async function fetchCategories(parentId = null) {
   const params = parentId ? { parentId } : {}
@@ -57,10 +54,8 @@ onMounted(async () => {
 watch(selectedLcs, async (val) => {
   selectedMcs.value = null
   selectedScs.value = null
-  selectedDcs.value = null
   mcsItems.value = []
   scsItems.value = []
-  dcsItems.value = []
   if (!val) return
   loadingMcs.value = true
   try {
@@ -72,27 +67,13 @@ watch(selectedLcs, async (val) => {
 
 watch(selectedMcs, async (val) => {
   selectedScs.value = null
-  selectedDcs.value = null
   scsItems.value = []
-  dcsItems.value = []
   if (!val) return
   loadingScs.value = true
   try {
     scsItems.value = await fetchCategories(val)
   } finally {
     loadingScs.value = false
-  }
-})
-
-watch(selectedScs, async (val) => {
-  selectedDcs.value = null
-  dcsItems.value = []
-  if (!val) return
-  loadingDcs.value = true
-  try {
-    dcsItems.value = await fetchCategories(val)
-  } finally {
-    loadingDcs.value = false
   }
 })
 
@@ -162,7 +143,7 @@ const productAdditionalNotes = ref('')
 // ───────────────────────────────────────────────
 // Tab 1 프롬프트 생성
 // ───────────────────────────────────────────────
-const canGenerate = computed(() => !!selectedDcs.value)
+const canGenerate = computed(() => !!selectedScs.value)
 // 현재 생성 중인 스타일: null | 'NANO_BANANA' | 'MID_JOURNEY'
 const generatingStyle = ref(null)
 const generating = computed(() => generatingStyle.value !== null)
@@ -191,7 +172,7 @@ async function onGeneratePrompt(promptStyle = 'NANO_BANANA') {
 
   try {
     const res = await api.post('/prompts/goods', {
-      goodsCategoryId: selectedDcs.value,
+      goodsCategoryId: selectedScs.value,
       tagIds: allSelectedTagIds.value,
       promptStyle,
       purpose: productPurpose.value || null,
@@ -468,10 +449,8 @@ function resetProduct() {
   selectedLcs.value = null
   selectedMcs.value = null
   selectedScs.value = null
-  selectedDcs.value = null
   mcsItems.value = []
   scsItems.value = []
-  dcsItems.value = []
   for (const group of tagGroups.value) {
     selectedTags.value[group.id] = group.isMultiSelect ? [] : null
   }
@@ -595,7 +574,7 @@ async function copyPersonToClipboard() {
           </v-card-title>
           <v-card-text>
             <v-row>
-              <v-col cols="12" sm="6" md="3">
+              <v-col cols="12" sm="4" md="4">
                 <v-select
                   v-model="selectedLcs"
                   :items="lcsItems"
@@ -609,7 +588,7 @@ async function copyPersonToClipboard() {
                   hide-details
                 />
               </v-col>
-              <v-col cols="12" sm="6" md="3">
+              <v-col cols="12" sm="4" md="4">
                 <v-select
                   v-model="selectedMcs"
                   :items="mcsItems"
@@ -624,7 +603,7 @@ async function copyPersonToClipboard() {
                   hide-details
                 />
               </v-col>
-              <v-col cols="12" sm="6" md="3">
+              <v-col cols="12" sm="4" md="4">
                 <v-select
                   v-model="selectedScs"
                   :items="scsItems"
@@ -635,21 +614,6 @@ async function copyPersonToClipboard() {
                   density="comfortable"
                   :loading="loadingScs"
                   :disabled="!selectedMcs"
-                  clearable
-                  hide-details
-                />
-              </v-col>
-              <v-col cols="12" sm="6" md="3">
-                <v-select
-                  v-model="selectedDcs"
-                  :items="dcsItems"
-                  item-title="name"
-                  item-value="id"
-                  label="세분류"
-                  variant="outlined"
-                  density="comfortable"
-                  :loading="loadingDcs"
-                  :disabled="!selectedScs"
                   clearable
                   hide-details
                 />
