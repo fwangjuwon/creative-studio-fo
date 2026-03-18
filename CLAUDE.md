@@ -60,6 +60,8 @@ src/
 ├── components/
 │   └── common/
 │       └── PageTitle.vue
+├── composables/
+│   └── useEscClose.js     # ESC 키 다이얼로그 닫기
 ├── layouts/
 │   ├── DefaultLayout.vue  # 로그인 후 공통 레이아웃 (사이드바 + 헤더)
 │   └── AuthLayout.vue     # 로그인 전 레이아웃
@@ -209,7 +211,8 @@ axios.get('http://localhost:8080/api/categories')
 |------|------|------|
 | View | PascalCase + `View` suffix | `PromptNewView.vue` |
 | Component | PascalCase | `CategorySelector.vue` |
-| Store | camelCase + `use` prefix | `useAuthStore` |
+| Store | camelCase 파일명, `use` prefix 함수명 | `useAuthStore` |
+| Composable | camelCase 파일명, `use` prefix 함수명 | `useEscClose` |
 | API 모듈 | camelCase | `promptApi.js` |
 
 ---

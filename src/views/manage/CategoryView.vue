@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '@/api'
+import { useEscClose } from '@/composables/useEscClose'
 
 // ───────────────────────────────────────────────
 // 카테고리 계층 데이터
@@ -147,6 +148,8 @@ const deleteTargetPanelIndex = ref(0)
 const deleteTarget = ref(null)
 const deleteLoading = ref(false)
 const deleteError = ref('')
+
+useEscClose(addDialog, editDialog, deleteDialog)
 
 function onDeleteDialogOpen(panelIndex, item) {
   deleteTargetPanelIndex.value = panelIndex
