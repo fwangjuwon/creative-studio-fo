@@ -106,9 +106,9 @@ ADMIN > MANAGER > USER
 ### 카테고리 vs 태그 — 완전히 다른 개념
 
 **카테고리** (어떤 상품을 이미지로 만들지)
-- 4단계 계층: LCS(대) > MCS(중) > SCS(소) > DCS(세분류)
+- 3단계 계층: LCS(대) > MCS(중) > SCS(소)
 - 단계별 드릴다운 UI — `GET /api/categories?parentId=` 를 단계별로 호출
-- 사용자는 **DCS를 최종 선택**해야 프롬프트 생성 가능
+- 사용자는 **SCS를 최종 선택**해야 프롬프트 생성 가능
 
 **태그** (이미지 스타일/분위기)
 - TagGroup → Tag 구조
@@ -120,7 +120,7 @@ ADMIN > MANAGER > USER
 
 **상품 사진** (`/prompt/new` TAB 1)
 ```
-카테고리 드릴다운(DCS 선택) + 태그 칩 선택
+카테고리 드릴다운(SCS 선택) + 태그 칩 선택
   → NanoBanana / MidJourney 버튼 중 선택
   → POST /api/prompts/goods { goodsCategoryId, tagIds[], promptStyle }
   → 영문 프롬프트 텍스트 반환

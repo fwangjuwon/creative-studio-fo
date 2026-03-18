@@ -6,13 +6,12 @@ import { useEscClose } from '@/composables/useEscClose'
 // ───────────────────────────────────────────────
 // 카테고리 계층 데이터
 // ───────────────────────────────────────────────
-const CATEGORY_TYPES = ['LCS', 'MCS', 'SCS', 'DCS']
+const CATEGORY_TYPES = ['LCS', 'MCS', 'SCS']
 
 const panels = ref([
   { label: '대분류 (LCS)', level: 1, parentId: null, items: [], loading: false, selectedId: null },
   { label: '중분류 (MCS)', level: 2, parentId: null, items: [], loading: false, selectedId: null },
   { label: '소분류 (SCS)', level: 3, parentId: null, items: [], loading: false, selectedId: null },
-  { label: '세분류 (DCS)', level: 4, parentId: null, items: [], loading: false, selectedId: null },
 ])
 
 async function fetchCategories(panelIndex) {
@@ -46,14 +45,14 @@ function onCategorySelect(panelIndex, item) {
 
   // 하위 패널 초기화 후 다음 패널 로드
   clearPanelsFrom(panelIndex + 1)
-  if (panelIndex < 3) {
+  if (panelIndex < 2) {
     panels.value[panelIndex + 1].parentId = item.id
     fetchCategories(panelIndex + 1)
   }
 }
 
 function clearPanelsFrom(fromIndex) {
-  for (let i = fromIndex; i < 4; i++) {
+  for (let i = fromIndex; i < 3; i++) {
     panels.value[i].selectedId = null
     panels.value[i].parentId = null
     panels.value[i].items = []
@@ -188,14 +187,14 @@ async function onDeleteSubmit() {
   <div>
     <h2 class="text-h5 font-weight-bold mb-6">카테고리 관리</h2>
 
-    <!-- ─── 4단계 패널 ─── -->
+    <!-- ─── 3단계 패널 ─── -->
     <v-row>
       <v-col
         v-for="(panel, idx) in panels"
         :key="idx"
         cols="12"
-        sm="6"
-        md="3"
+        sm="4"
+        md="4"
       >
         <v-card
           variant="outlined"

@@ -8,7 +8,7 @@
 
 ## 결정 필요 사항
 
-- [x] 카테고리 드릴다운 UI 방식 결정 → **옵션 A: 가로 4단계 셀렉트박스 (`v-select` 4개)**
+- [x] 카테고리 드릴다운 UI 방식 결정 → **옵션 A: 가로 3단계 셀렉트박스 (`v-select` 3개)**
 - [x] 프롬프트 이력 표시 방식 결정 → **옵션 A: 카드 리스트**
 - [x] 네비게이션 구조 결정 → **옵션 A: 좌측 사이드바 (Step 2에서 구현 완료)**
 
@@ -64,10 +64,10 @@
 ### TAB 1: 상품 사진 프롬프트 ✅
 
 - [x] `PromptNewView.vue` 생성 + 라우터 등록
-- [x] 카테고리 드릴다운 컴포넌트 (가로 4단계 v-select)
+- [x] 카테고리 드릴다운 컴포넌트 (가로 3단계 v-select)
   - [x] LCS 목록 조회 (`GET /api/categories?parentId=`)
-  - [x] 선택 시 하위 단계 순차 조회 (MCS → SCS → DCS)
-  - [x] DCS 최종 선택값 상태 관리
+  - [x] 선택 시 하위 단계 순차 조회 (MCS → SCS)
+  - [x] SCS 최종 선택값 상태 관리
 - [x] 태그 선택 컴포넌트
   - [x] 태그 그룹 목록 조회 (`GET /api/tag-groups`)
   - [x] 그룹별 태그 조회 (`GET /api/tags?tagGroupId=`)
@@ -112,7 +112,7 @@
 **수정 파일**: `src/views/prompt/PromptNewView.vue`
 
 - [x] `api.post('/prompts', ...)` → `api.post('/prompts/goods', ...)`
-- [x] 요청 body `categoryId: selectedDcs.value` → `goodsCategoryId: selectedDcs.value`
+- [x] 요청 body `categoryId: selectedDcs.value` → `goodsCategoryId: selectedScs.value`
 - [x] 응답 `categoryId` 참조 확인 (현재는 `promptText`만 사용 중 → 실질 영향 없음)
 
 > **변경 없는 것**: 히스토리 조회 `GET /api/prompts` — URL·응답 스펙 그대로 유지
@@ -302,6 +302,25 @@
 - [x] `UserView.vue` — useEscClose 적용 (3개 다이얼로그)
 - [x] `HumanPromptStructureView.vue` — useEscClose 적용 (9개 다이얼로그)
 - [x] 문서 업데이트 (coding-convention, CLAUDE.md, GEMINI.md)
+
+---
+
+## feat/category-depth-3 반영 (2026-03-18)
+
+> **배경**: 백엔드에서 상품 카테고리 계층을 4단계(LCS/MCS/SCS/DCS)에서 3단계(LCS/MCS/SCS)로 변경.
+> 소분류(SCS)가 최종 선택 단계가 되며, `goodsCategoryId`에 SCS id를 전달해야 함.
+
+- [x] `PromptNewView.vue` — `dcsItems`, `selectedDcs`, `loadingDcs` ref 제거
+- [x] `PromptNewView.vue` — SCS watch 블록 완전 제거 (DCS 목록 API 호출 제거)
+- [x] `PromptNewView.vue` — LCS/MCS watch에서 DCS 초기화 코드 제거
+- [x] `PromptNewView.vue` — `canGenerate` 조건 `selectedScs`로 변경
+- [x] `PromptNewView.vue` — `goodsCategoryId: selectedScs.value` 전달
+- [x] `PromptNewView.vue` — 세분류 `v-select` 제거, 3단계 컬럼 레이아웃 적용
+- [x] `CategoryView.vue` — `CATEGORY_TYPES`에서 `'DCS'` 제거
+- [x] `CategoryView.vue` — `panels` 배열 3개로 축소
+- [x] `CategoryView.vue` — `onCategorySelect` 조건 `panelIndex < 2`로 수정
+- [x] `CategoryView.vue` — `clearPanelsFrom` 반복 범위 3으로 수정
+- [x] `CategoryView.vue` — 3단계 컬럼 레이아웃 적용
 
 ---
 
