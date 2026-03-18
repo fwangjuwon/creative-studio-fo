@@ -6,6 +6,13 @@ const histories = ref([])
 const loading = ref(false)
 const errorMessage = ref('')
 
+const pageNum         = ref(1)
+const pageSize        = ref(10)
+const total           = ref(0)
+const pages           = ref(0)
+const hasPreviousPage = ref(false)
+const hasNextPage     = ref(false)
+
 // 이미지 패널 펼침 상태 (historyId → boolean)
 const expandedImages = ref({})
 function toggleImages(id) {
@@ -69,12 +76,18 @@ async function copyToClipboard(text, id) {
 }
 
 // 이력 조회
-async function fetchHistories() {
+async function fetchHistories(page = pageNum.value) {
+  pageNum.value = page  // v-pagination 스냅백 방지: 렌더링 전에 먼저 반영
   loading.value = true
   errorMessage.value = ''
   try {
-    const res = await api.get('/prompts')
-    histories.value = res.data.data ?? []
+    const res = await api.get('/prompts', { params: { pageNum: page, pageSize: pageSize.value } })
+    const paged = res.data.data
+    histories.value       = paged?.items ?? []
+    total.value           = paged?.total ?? 0
+    pages.value           = paged?.pages ?? 0
+    hasPreviousPage.value = paged?.hasPreviousPage ?? false
+    hasNextPage.value     = paged?.hasNextPage ?? false
   } catch (err) {
     errorMessage.value = err.response?.data?.message || '이력 조회 중 오류가 발생했습니다.'
   } finally {
@@ -82,14 +95,26 @@ async function fetchHistories() {
   }
 }
 
-onMounted(fetchHistories)
+onMounted(() => fetchHistories(1))
 </script>
 
 <template>
   <div>
     <div class="d-flex align-center mb-6">
       <h2 class="text-h5 font-weight-bold">프롬프트 이력</h2>
+      <span v-if="total > 0" class="text-body-2 text-medium-emphasis ml-3">
+        총 {{ total.toLocaleString() }}건
+      </span>
       <v-spacer />
+      <v-btn
+        variant="tonal"
+        color="primary"
+        prepend-icon="mdi-refresh"
+        :loading="loading"
+        @click="fetchHistories(1)"
+      >
+        새로고침
+      </v-btn>
     </div>
 
     <!-- 에러 -->
@@ -305,6 +330,17 @@ onMounted(fetchHistories)
         </v-card>
       </v-col>
     </v-row>
+
+    <!-- 페이지네이션 -->
+    <div v-if="pages > 1" class="d-flex justify-center mt-6">
+      <v-pagination
+        :model-value="pageNum"
+        :length="pages"
+        :total-visible="7"
+        rounded="circle"
+        @update:model-value="fetchHistories"
+      />
+    </div>
   </div>
 </template>
 

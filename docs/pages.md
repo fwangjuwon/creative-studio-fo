@@ -143,17 +143,34 @@ App.vue
 - **레이아웃**: DefaultLayout
 - **접근 권한**: 전 역할 (로그인 필수)
 - **기능**:
-  - 프롬프트 생성 이력 카드 목록 표시
+  - 프롬프트 생성 이력 카드 목록 표시 (페이지당 10건)
+  - 헤더에 총 건수 표시 (`총 N건`)
   - 각 항목: 생성일시, 생성자, 프롬프트 타입(상품/인물) 뱃지, 스타일 뱃지(NanoBanana/MidJourney), 프롬프트 텍스트
   - **PRODUCT** 항목: 카테고리 경로(`대분류 > 중분류 > 소분류 > 세분류`), 선택 태그 칩 목록
   - **PERSON** 항목: 선택 옵션 칩 목록, 생성 목적, 추가 지시 사항 (값 있을 때만)
   - 이미지 생성된 항목은 이미지 썸네일 함께 표시
   - 클립보드 복사 버튼
-  - 새로고침 버튼
+  - 새로고침 버튼 (1페이지로 초기화 후 재조회)
+  - 하단 페이지네이션 (`v-pagination`, 2페이지 이상일 때만 표시)
   - **USER**: 같은 팀 이력만 표시 (백엔드에서 필터링)
   - **MANAGER / ADMIN**: 전체 이력 표시
-- **API**: `GET /api/prompts`
-  - 응답 신규 필드: `promptStyle`, `categoryPath`, `tagNames` (PRODUCT), `optionNames`, `purpose`, `additionalNotes` (PERSON)
+- **API**: `GET /api/prompts?pageNum=1&pageSize=10`
+  - 쿼리 파라미터: `pageNum` (기본값 1), `pageSize` (기본값 10, 최대 1000)
+  - 응답 `data` 구조 (페이징 객체):
+
+    | 필드 | 타입 | 설명 |
+    |---|---|---|
+    | `pageNum` | integer | 현재 페이지 번호 |
+    | `pageSize` | integer | 페이지 크기 |
+    | `total` | long | 전체 레코드 수 |
+    | `pages` | integer | 전체 페이지 수 |
+    | `items` | array | 이력 목록 |
+    | `hasPreviousPage` | boolean | 이전 페이지 존재 여부 |
+    | `hasNextPage` | boolean | 다음 페이지 존재 여부 |
+
+  - `items` 배열 항목 공통 필드: `id`, `userId`, `promptType` (`PRODUCT`/`PERSON`), `promptStyle`, `promptText`, `imageUrls[]`, `initRegiPic`, `initRegiDttm`, `finalRvisDttm`
+  - `PRODUCT` 전용: `categoryId`, `categoryPath`, `tagIds[]`, `tagNames[]`
+  - `PERSON` 전용: `purpose`, `additionalNotes`, `optionNames[]`
 - **상태**: ✅ 구현됨
 
 ---
