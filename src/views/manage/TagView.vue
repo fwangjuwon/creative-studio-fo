@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '@/api'
+import { useEscClose } from '@/composables/useEscClose'
 
 // ───────────────────────────────────────────────
 // 태그 그룹
@@ -228,6 +229,8 @@ const deleteTagDialog = ref(false)
 const deleteTagTarget = ref(null)
 const deleteTagLoading = ref(false)
 const deleteTagError = ref('')
+
+useEscClose(addGroupDialog, editGroupDialog, deleteGroupDialog, addTagDialog, editTagDialog, deleteTagDialog)
 
 function onDeleteTagDialogOpen(tag) {
   deleteTagTarget.value = tag

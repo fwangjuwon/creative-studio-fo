@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '@/api'
+import { useEscClose } from '@/composables/useEscClose'
 
 // ───────────────────────────────────────────────
 // 목록 & 검색
@@ -206,6 +207,8 @@ const deleteDialog = ref(false)
 const deleteTarget = ref(null) // 삭제 대상 사용자
 const deleteLoading = ref(false)
 const deleteError = ref('')
+
+useEscClose(createDialog, editDialog, deleteDialog)
 
 // 삭제 확인 다이얼로그 열기
 function onDeleteDialogOpen(user) {

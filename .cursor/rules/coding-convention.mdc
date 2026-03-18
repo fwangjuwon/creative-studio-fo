@@ -54,6 +54,7 @@ src/
 ├── assets/        # 정적 자산 (이미지, 글로벌 CSS)
 ├── components/    # 재사용 가능한 컴포넌트
 │   └── common/    # 공통 컴포넌트
+├── composables/   # Vue Composable 함수
 ├── layouts/       # 레이아웃 컴포넌트 (DefaultLayout, AuthLayout)
 ├── plugins/       # Vuetify 등 플러그인 설정
 ├── router/        # Vue Router 설정
@@ -73,6 +74,7 @@ src/
 | Component | PascalCase | `CategorySelector.vue`, `TagChipGroup.vue` |
 | Layout | PascalCase + `Layout` suffix | `DefaultLayout.vue` |
 | Store | camelCase 파일명, `use` prefix 함수명 | `auth.js` → `useAuthStore` |
+| Composable | camelCase 파일명, `use` prefix 함수명 | `useEscClose.js` → `useEscClose` |
 | API 모듈 | camelCase | `promptApi.js`, `categoryApi.js` |
 
 ---
