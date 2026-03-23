@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import api from '@/api'
+import { useEscClose } from '@/composables/useEscClose'
 
 // ───────────────────────────────────────────────
 // 전체 트리 로드
@@ -322,6 +323,12 @@ const deleteOptionDialog = ref(false)
 const deleteOptionTarget = ref(null)
 const deleteOptionLoading = ref(false)
 const deleteOptionError = ref('')
+
+useEscClose(
+  addStepDialog, editStepDialog, deleteStepDialog,
+  addAttrDialog, editAttrDialog, deleteAttrDialog,
+  addOptionDialog, editOptionDialog, deleteOptionDialog
+)
 
 function onDeleteOptionDialogOpen(option) {
   deleteOptionTarget.value = option

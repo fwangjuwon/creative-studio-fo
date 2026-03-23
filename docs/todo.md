@@ -292,6 +292,17 @@
 
 ---
 
+## Phase 3. UX 개선
+
+### feat: ESC 키로 다이얼로그 닫기
+
+- [x] `src/composables/useEscClose.js` 생성
+- [x] `CategoryView.vue` — useEscClose 적용 (3개 다이얼로그)
+- [x] `TagView.vue` — useEscClose 적용 (6개 다이얼로그)
+- [x] `UserView.vue` — useEscClose 적용 (3개 다이얼로그)
+- [x] `HumanPromptStructureView.vue` — useEscClose 적용 (9개 다이얼로그)
+- [x] 문서 업데이트 (coding-convention, CLAUDE.md, GEMINI.md)
+
 ---
 
 ## feat/category-depth-3 반영 (2026-03-18)
