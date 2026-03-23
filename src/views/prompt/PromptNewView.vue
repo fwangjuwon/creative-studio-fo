@@ -121,9 +121,21 @@ function isTagSelected(group, tagId) {
   return selectedTags.value[group.id] === tagId
 }
 
+const imageSizeGroup = computed(() =>
+  tagGroups.value.find(g => g.name === '이미지 사이즈') ?? null
+)
+
+const selectedImageAspectRatio = computed(() => {
+  if (!imageSizeGroup.value) return null
+  const tagId = selectedTags.value[imageSizeGroup.value.id]
+  if (!tagId) return null
+  return tagsByGroup.value[imageSizeGroup.value.id]?.find(t => t.id === tagId)?.name ?? null
+})
+
 const allSelectedTagIds = computed(() => {
   const ids = []
   for (const group of tagGroups.value) {
+    if (imageSizeGroup.value && group.id === imageSizeGroup.value.id) continue  // 이미지 사이즈는 별도 전송
     const val = selectedTags.value[group.id]
     if (group.isMultiSelect) {
       if (Array.isArray(val)) ids.push(...val)
@@ -161,6 +173,12 @@ const generatingGoodsImage = ref(false)
 const goodsImageErrorMessage = ref('')
 const goodsReferenceImage = ref(null)       // File 객체
 const goodsReferenceImagePreview = ref('')  // ObjectURL (미리보기)
+const goodsGeneratedAspectRatio = ref('1:1')  // 이미지 생성 시점에 캡처한 종횡비
+
+const goodsImageAspectRatioValue = computed(() => {
+  const [w, h] = goodsGeneratedAspectRatio.value.split(':').map(Number)
+  return w / h
+})
 
 async function onGeneratePrompt(promptStyle = 'NANO_BANANA') {
   if (!canGenerate.value) return
@@ -174,6 +192,7 @@ async function onGeneratePrompt(promptStyle = 'NANO_BANANA') {
     const res = await api.post('/prompts/goods', {
       goodsCategoryId: selectedScs.value,
       tagIds: allSelectedTagIds.value,
+      imageAspectRatio: selectedImageAspectRatio.value,
       promptStyle,
       purpose: productPurpose.value || null,
       additionalNotes: productAdditionalNotes.value || null,
@@ -234,6 +253,7 @@ async function generateGoodsImage() {
   generatingGoodsImage.value = true
   goodsImageErrorMessage.value = ''
   generatedGoodsImageUrls.value = []
+  goodsGeneratedAspectRatio.value = selectedImageAspectRatio.value || '1:1'
 
   try {
     const formData = new FormData()
@@ -241,6 +261,9 @@ async function generateGoodsImage() {
       formData.append('historyId', goodsPromptHistoryId.value)
     }
     formData.append('promptText', generatedPrompt.value)
+    if (goodsGeneratedAspectRatio.value) {
+      formData.append('imageAspectRatio', goodsGeneratedAspectRatio.value)
+    }
     if (goodsReferenceImage.value) {
       formData.append('referenceImage', goodsReferenceImage.value)
     }
@@ -363,17 +386,26 @@ const personPromptHistoryId = ref(null)  // 프롬프트 생성 시 저장된 hi
 const generatingImage = ref(false)
 const generatedImageUrls = ref([])
 const imageErrorMessage = ref('')
+const personSelectedAspectRatio = ref(null)       // 이미지 사이즈 선택값 (생성 전)
+const personGeneratedAspectRatio = ref('1:1')     // 이미지 생성 시점에 캡처한 종횡비
+
+const personImageAspectRatioValue = computed(() => {
+  const [w, h] = personGeneratedAspectRatio.value.split(':').map(Number)
+  return w / h
+})
 
 async function generatePersonImage() {
   if (!generatedPersonPrompt.value) return
   generatingImage.value = true
   imageErrorMessage.value = ''
   generatedImageUrls.value = []
+  personGeneratedAspectRatio.value = personSelectedAspectRatio.value || '1:1'
 
   try {
     const res = await api.post('/human-prompts/generate-image', {
       historyId: personPromptHistoryId.value,
       promptText: generatedPersonPrompt.value,
+      imageAspectRatio: personSelectedAspectRatio.value || null,
     }, { timeout: 180000 })  // 3개 병렬 생성이므로 3분으로 설정
     generatedImageUrls.value = res.data.data?.imageUrls ?? []
   } catch (err) {
@@ -426,6 +458,7 @@ async function generatePersonPrompt(promptStyle = 'NANO_BANANA') {
       purpose: personPurpose.value || null,
       additionalNotes: personAdditionalNotes.value || null,
       promptStyle,
+      imageAspectRatio: personSelectedAspectRatio.value || null,
     })
     // 이력 ID, 프롬프트 텍스트, 사용된 스타일 저장
     personPromptHistoryId.value = res.data.data?.id ?? null
@@ -483,6 +516,8 @@ function resetPerson() {
   personErrorMessage.value = ''
   imageErrorMessage.value = ''
   personCopied.value = false
+  personSelectedAspectRatio.value = null
+  personGeneratedAspectRatio.value = '1:1'
 }
 
 function onReset() {
@@ -867,7 +902,7 @@ async function copyPersonToClipboard() {
                 <v-card variant="flat" border rounded="lg">
                   <v-img
                     :src="url"
-                    aspect-ratio="1"
+                    :aspect-ratio="goodsImageAspectRatioValue"
                     cover
                     rounded="t-lg"
                   >
@@ -986,6 +1021,24 @@ async function copyPersonToClipboard() {
               <span class="text-caption text-medium-emphasis ml-2">(선택 사항)</span>
             </v-card-title>
             <v-card-text>
+              <!-- 이미지 사이즈 선택 -->
+              <template v-if="imageSizeGroup">
+                <div class="mb-4">
+                  <div class="text-body-2 font-weight-medium mb-2">이미지 사이즈</div>
+                  <div class="d-flex flex-wrap gap-2">
+                    <v-chip
+                      v-for="tag in tagsByGroup[imageSizeGroup.id]"
+                      :key="tag.id"
+                      :color="personSelectedAspectRatio === tag.name ? 'primary' : 'default'"
+                      :variant="personSelectedAspectRatio === tag.name ? 'flat' : 'outlined'"
+                      class="cursor-pointer"
+                      @click="personSelectedAspectRatio = personSelectedAspectRatio === tag.name ? null : tag.name"
+                    >
+                      {{ tag.name }}
+                    </v-chip>
+                  </div>
+                </div>
+              </template>
               <v-text-field
                 v-model="personPurpose"
                 label="생성 목적"
@@ -1143,7 +1196,7 @@ async function copyPersonToClipboard() {
                   <v-card variant="flat" border rounded="lg">
                     <v-img
                       :src="url"
-                      aspect-ratio="1"
+                      :aspect-ratio="personImageAspectRatioValue"
                       cover
                       rounded="t-lg"
                     >
