@@ -200,7 +200,7 @@ onMounted(() => fetchHistories(1))
                 </span>
                 <span class="text-body-2">{{ item.categoryPath }}</span>
               </div>
-              <div v-if="item.tagNames && item.tagNames.length > 0" class="d-flex flex-wrap gap-1 mb-3">
+              <div v-if="(item.tagNames && item.tagNames.length > 0) || item.imageAspectRatio" class="d-flex flex-wrap gap-1 mb-3">
                 <span class="text-caption text-medium-emphasis mr-1 align-self-center">
                   <v-icon size="14" class="mr-1">mdi-label-multiple</v-icon>태그
                 </span>
@@ -213,12 +213,20 @@ onMounted(() => fetchHistories(1))
                 >
                   {{ tag }}
                 </v-chip>
+                <v-chip
+                  v-if="item.imageAspectRatio"
+                  size="x-small"
+                  color="secondary"
+                  variant="tonal"
+                >
+                  {{ item.imageAspectRatio }}
+                </v-chip>
               </div>
             </template>
 
             <!-- PERSON 전용: 선택 옵션 + 목적 + 추가 지시 -->
             <template v-else-if="item.promptType === 'PERSON'">
-              <div v-if="item.optionNames && item.optionNames.length > 0" class="d-flex flex-wrap gap-1 mb-3">
+              <div v-if="(item.optionNames && item.optionNames.length > 0) || item.imageAspectRatio" class="d-flex flex-wrap gap-1 mb-3">
                 <span class="text-caption text-medium-emphasis mr-1 align-self-center">
                   <v-icon size="14" class="mr-1">mdi-account-details</v-icon>선택 옵션
                 </span>
@@ -230,6 +238,14 @@ onMounted(() => fetchHistories(1))
                   variant="tonal"
                 >
                   {{ opt }}
+                </v-chip>
+                <v-chip
+                  v-if="item.imageAspectRatio"
+                  size="x-small"
+                  color="secondary"
+                  variant="tonal"
+                >
+                  {{ item.imageAspectRatio }}
                 </v-chip>
               </div>
               <div v-if="item.purpose" class="mb-2">
@@ -298,8 +314,8 @@ onMounted(() => fetchHistories(1))
                     <v-card variant="outlined" class="pa-1">
                       <v-img
                         :src="url"
-                        aspect-ratio="1"
-                        cover
+                        max-height="300"
+                        contain
                         class="rounded"
                       >
                         <template #error>
