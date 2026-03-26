@@ -54,20 +54,26 @@ ADMIN > MANAGER > USER  (계층 구조, 한 유저는 하나의 Role만 가짐)
 ```
 카테고리 드릴다운(SCS 최종 선택)
   + 태그 칩 선택(그룹별 단일/복수)
+  + 이미지 비율 선택(imageAspectRatio — tagIds에서 분리된 별도 필드)
   → NanoBanana / MidJourney 버튼 선택
-  → POST /api/prompts/goods { goodsCategoryId, tagIds[], promptStyle }
-  → 영문 프롬프트 텍스트 반환
-  → 결과 표시 (스타일 뱃지) + 클립보드 복사 버튼
+  → POST /api/prompts/goods { goodsCategoryId, tagIds[], imageAspectRatio, promptStyle }
+  → 영문 프롬프트 텍스트 반환 (+ historyId)
+  → 결과 표시 (스타일 뱃지) + 클립보드 복사 + 초기화 버튼
+  → 이미지 생성 버튼(NanoBanana) → POST /api/prompts/goods/generate-image
+  → 이미지 3장 그리드 표시 + 각 이미지 다운로드 버튼
 ```
 
 **인물 사진** (`/prompt/new` TAB 2)
 ```
-단계별 속성 선택(Step → Attr → Option)
+단계별 속성 선택(Step → Attr → Option) — required Attr 미선택 시 생성 차단
+  + 이미지 비율 선택(imageAspectRatio)
   + 생성 목적 / 추가 지시 사항 입력 (선택)
   → NanoBanana / MidJourney 버튼 선택
-  → POST /api/human-prompts { selections, purpose, additionalNotes, promptStyle }
-  → 영문 프롬프트 텍스트 반환
-  → 결과 표시 + 클립보드 복사 + 이미지 생성 버튼
+  → POST /api/human-prompts { selections, purpose, additionalNotes, imageAspectRatio, promptStyle }
+  → 영문 프롬프트 텍스트 반환 (+ historyId)
+  → 결과 표시 + 클립보드 복사 + 초기화 버튼
+  → 이미지 생성 버튼(NanoBanana) → POST /api/human-prompts/generate-image
+  → 이미지 3장 그리드 표시 + 각 이미지 다운로드 버튼
 ```
 
 ---
@@ -90,6 +96,26 @@ ADMIN > MANAGER > USER  (계층 구조, 한 유저는 하나의 Role만 가짐)
 - 성공은 항상 HTTP 200
 - 실제 데이터는 `response.data.data` 에 위치
 - 조회 결과 없음: `data: null`
+
+---
+
+## 인증 & API 주의사항
+
+- JWT Access Token → `localStorage.setItem('token', ...)`
+- 401 응답 시 자동으로 localStorage 초기화 + `/auth/login` 리다이렉트
+  - ⚠️ `/auth/login` URL 자체는 401 리다이렉트 대상에서 **제외** (로그인 실패 처리를 위해)
+- `src/api/index.js` baseURL: `import.meta.env.VITE_API_BASE_URL || '/api'`
+  - `npm run dev` → Vite 프록시 경유 (`/api` → `localhost:8080`)
+  - `npm run local` → `.env.local` (localhost 직접 연결)
+  - `npm run build:dev` → `.env.development` (개발 서버 도메인)
+
+---
+
+## 컴포넌트 캐싱
+
+`DefaultLayout.vue`에 `<keep-alive include="PromptNewView">` 적용 중.
+`PromptNewView`는 라우트 이동 후에도 상태(태그 목록 등)가 유지된다.
+→ PromptNewView에서 `onMounted` 재실행이 필요한 로직은 `onActivated`로 작성할 것.
 
 ---
 

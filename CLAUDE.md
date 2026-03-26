@@ -37,14 +37,46 @@
 # 의존성 설치
 npm install
 
-# 개발 서버 (포트 3000, /api → localhost:8080 프록시)
+# 개발 서버 (Vite 프록시 경유 — /api → localhost:8080)
 npm run dev
 
-# 빌드
+# 로컬 직접 연결 (.env.local 사용 — VITE_API_BASE_URL=http://localhost:8080/api)
+npm run local
+
+# 개발 서버 빌드 (.env.development 사용 — 개발 서버 도메인 직접 연결)
+npm run build:dev
+
+# 프로덕션 빌드
 npm run build
 ```
 
 > ⚠️ 백엔드(ns-creative-studio-bo)가 8080 포트에서 실행 중이어야 API 연동 가능.
+
+---
+
+## 환경 변수 & 배포
+
+### 환경 변수 파일
+
+| 파일 | 적용 모드 | VITE_API_BASE_URL | 용도 |
+|------|-----------|-------------------|------|
+| `.env` | 기본 | `http://localhost:8080/api` | Vite 프록시 사용 시 기본값 (fallback) |
+| `.env.local` | `localhost` | `http://localhost:8080/api` | `npm run local` — 로컬 직접 연결 |
+| `.env.development` | `development` | `https://nsm-dev-creative-bo.nsmall.com/api` | `npm run build:dev` — 개발 서버 빌드 |
+| `.env.example` | — | `http://localhost:8080/api` | 환경 변수 예제 파일 |
+
+- `src/api/index.js`: `baseURL: import.meta.env.VITE_API_BASE_URL || '/api'`
+- 환경변수 미설정 시 `/api`(Vite 프록시 경유)가 fallback
+
+### Docker 배포
+
+```dockerfile
+FROM nsm-cloud-registry.nsmall.com/nsm-images/nginx:1.25.5
+COPY /dist /usr/share/nginx/html
+EXPOSE 80
+```
+
+`npm run build` → `/dist` 결과물을 nginx 컨테이너에 복사하여 배포.
 
 ---
 
@@ -166,6 +198,7 @@ axios.get('http://localhost:8080/api/categories')
 - JWT Access Token → `localStorage.setItem('token', ...)`
 - 요청 인터셉터에서 자동으로 `Authorization: Bearer {token}` 헤더 주입
 - 401 응답 시 자동으로 `localStorage` 초기화 + `/auth/login` 리다이렉트
+  - ⚠️ `/auth/login` 자체 요청은 401 리다이렉트 대상에서 제외 (로그인 실패 에러 처리를 위해)
 - Refresh Token 없음 (만료 시 재로그인)
 
 ---
@@ -184,6 +217,30 @@ axios.get('http://localhost:8080/api/categories')
 | `/manage/users` | 사용자 관리 | ADMIN | ✅ 구현됨 |
 
 > 화면 상세 스펙: [`docs/pages.md`](docs/pages.md)
+
+---
+
+## UI 테마 & 레이아웃
+
+- **테마 색상**: primary 핑크 테마 (`#9D6D6F` / `#F0C3C1`) — `src/plugins/vuetify.js`
+- **사이드바**: 연핑크(`#F0C3C1`) 배경
+- **앱바**: 흰색 배경 + `banner.png` 이미지
+- **앱바 우측**: role 칩 + loginId + 오늘 사용량 표시
+- **홈 화면**: 카카오톡 말풍선 스타일 챗봇 UI (엔송이 아바타 + 사용자 아이콘)
+- **로그인 화면**: 핑크 그라데이션 배경
+
+## 태그 캐싱
+
+`DefaultLayout.vue`에서 `<keep-alive include="PromptNewView">`를 적용하여 프롬프트 생성 화면(`PromptNewView`)의 컴포넌트 상태(태그 목록 포함)를 라우트 이동 후에도 유지한다.
+
+```vue
+<!-- DefaultLayout.vue -->
+<router-view v-slot="{Component}">
+  <keep-alive include="PromptNewView">
+    <component :is="Component" />
+  </keep-alive>
+</router-view>
+```
 
 ---
 
