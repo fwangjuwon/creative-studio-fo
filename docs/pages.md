@@ -66,11 +66,13 @@ App.vue
 #### `/` — 대시보드 (홈)
 - **레이아웃**: DefaultLayout
 - **접근 권한**: 로그인 필수 (전 역할 공통)
+- **UI**: 카카오톡 말풍선 스타일 챗봇 UI — 엔송이(nsonge.png) 아바타와 사용자 아이콘 아바타로 구성
 - **기능**:
   - 사용자 정보 카드 (role 뱃지, loginId)
   - 오늘 사용량: `todayUsedCount / dailyLimit` 표시
   - `remainingCount === 0` 시 한도 도달 경고 알림 표시
 - **API**: `GET /api/users/me/usage`
+- **참고**: 사용자 정보(role 칩 + loginId + 오늘 사용량)는 `DefaultLayout` 앱바 우측에도 표시됨
 - **상태**: ✅ 구현됨
 
 ---
@@ -93,20 +95,30 @@ App.vue
      - 태그 그룹 목록 조회 → 그룹별로 태그 칩 렌더링
      - `is_multi_select = false`: 단일 선택 (라디오 동작)
      - `is_multi_select = true`: 복수 선택 (체크박스 동작)
-  3. **프롬프트 생성** 버튼 — 스타일 2종
+  3. **이미지 비율 선택** (`imageAspectRatio`)
+     - 이미지 사이즈 태그 그룹은 `tagIds`에서 분리하여 `imageAspectRatio` 필드로 별도 전송
+     - 선택한 비율이 이미지 미리보기에 적용됨
+  4. **프롬프트 생성** 버튼 — 스타일 2종
      - `NanoBanana` 스타일 버튼 (`NANO_BANANA`)
      - `MidJourney` 스타일 버튼 (`MID_JOURNEY`)
      - 카테고리 미선택 시 버튼 비활성화
      - 한 버튼 생성 중 나머지 버튼 비활성화
-  4. **결과 표시**
+  5. **결과 표시**
      - 생성된 영문 프롬프트 텍스트 박스 (스타일 뱃지 표시)
      - 클립보드 복사 버튼
      - 재생성 버튼 (마지막 사용 스타일로 재호출)
+     - **초기화 버튼** — 카테고리·태그·결과 전체 상태 리셋
+  6. **이미지 생성** (NanoBanana)
+     - 이미지 생성 버튼 — `goodsPromptHistoryId` 저장 후 이미지 생성 API 호출
+     - 결과: 이미지 **3장 그리드** 표시 + 각 이미지 **다운로드 버튼**
 - **API**:
   - `GET /api/categories?parentId=` (단계별 반복 호출)
   - `GET /api/tag-groups`
   - `GET /api/tags?tagGroupId=`
-  - `POST /api/prompts/goods` → 요청: `{ goodsCategoryId, tagIds[], promptStyle }` / 응답: `{ promptText }`
+  - `POST /api/prompts/goods` → 요청: `{ goodsCategoryId, tagIds[], imageAspectRatio, promptStyle }` / 응답: `{ id, promptText }`
+  - `POST /api/prompts/goods/generate-image` → 이미지 생성 (타임아웃 2분)
+    - 요청: `{ historyId, promptText }`
+    - 응답: `{ imageUrls[] }`
 - **참고**: USER는 일일 생성 한도 초과 시 에러 메시지 표시 (에러코드 `P001`)
 
 ##### TAB 2: 인물 사진 프롬프트
@@ -115,26 +127,33 @@ App.vue
      - 각 단계(Step)는 여러 속성(Attr)을 포함
      - 속성별 `multiSelect` 여부에 따라 단일/복수 선택 칩 UI
      - `required` 속성은 필수 뱃지 표시
-  2. **추가 옵션** (선택 사항)
+  2. **이미지 비율 선택** (`imageAspectRatio`)
+     - 상품 탭과 동일하게 이미지 사이즈 선택 UI 제공
+     - `imageAspectRatio` 필드로 별도 전송
+  3. **추가 옵션** (선택 사항)
      - 생성 목적 (예: SNS 광고용, 커머스 상세페이지)
      - 추가 지시 사항 (Gemini에게 직접 전달할 자유 텍스트)
-  3. **프롬프트 생성** 버튼 — 스타일 2종
+  4. **프롬프트 생성** 버튼 — 스타일 2종
      - `NanoBanana` 스타일 (`NANO_BANANA`)
      - `MidJourney` 스타일 (`MID_JOURNEY`)
-  4. **결과 표시**
+     - **필수 항목 미선택 시 에러 메시지 표시 후 중단** (`required = true` Attr 검증)
+  5. **결과 표시**
      - 생성된 영문 프롬프트 텍스트 박스 (스타일 뱃지 표시)
      - 클립보드 복사 버튼
      - 재생성 버튼
-     - **이미지 생성 버튼** (NanoBanana API로 직접 이미지 생성)
+     - **초기화 버튼** — 선택 옵션·결과 전체 상태 리셋
+  6. **이미지 생성** (NanoBanana)
+     - 이미지 생성 버튼 — NanoBanana API로 직접 이미지 생성
+     - 결과: 이미지 **3장 그리드** 표시 + 각 이미지 **다운로드 버튼**
 - **API**:
   - `GET /api/human-prompts/steps` → 단계/속성/옵션 구조 조회
     - 응답: `[{ id, stepNumber, name, attrs: [{ id, name, multiSelect, required, options: [{ id, name }] }] }]`
   - `POST /api/human-prompts` → 프롬프트 생성
-    - 요청: `{ selections: { attrId: [optionId] }, purpose, additionalNotes, promptStyle }`
+    - 요청: `{ selections: { attrId: [optionId] }, purpose, additionalNotes, imageAspectRatio, promptStyle }`
     - 응답: `{ id, promptText }`
   - `POST /api/human-prompts/generate-image` → 이미지 생성 (타임아웃 2분)
     - 요청: `{ historyId, promptText }`
-    - 응답: `{ imageUrl }`
+    - 응답: `{ imageUrls[] }`
 
 ---
 
@@ -145,9 +164,11 @@ App.vue
   - 프롬프트 생성 이력 카드 목록 표시 (페이지당 10건)
   - 헤더에 총 건수 표시 (`총 N건`)
   - 각 항목: 생성일시, 생성자, 프롬프트 타입(상품/인물) 뱃지, 스타일 뱃지(NanoBanana/MidJourney), 프롬프트 텍스트
-  - **PRODUCT** 항목: 카테고리 경로(`대분류 > 중분류 > 소분류`), 선택 태그 칩 목록
-  - **PERSON** 항목: 선택 옵션 칩 목록, 생성 목적, 추가 지시 사항 (값 있을 때만)
-  - 이미지 생성된 항목은 이미지 썸네일 함께 표시
+  - **PRODUCT** 항목: 카테고리 경로(`대분류 > 중분류 > 소분류`), 선택 태그 칩 목록, `imageAspectRatio` 칩
+  - **PERSON** 항목: 선택 옵션 칩 목록, `imageAspectRatio` 칩, 생성 목적, 추가 지시 사항 (값 있을 때만)
+  - 이미지 생성된 항목: **'이미지 확인(N장)'** 버튼 클릭 시 `v-expand-transition`으로 이미지 펼침
+    - **'N장 생성됨'** 뱃지 표시
+    - 이미지는 기본 숨김 → 버튼 클릭 시 토글
   - 클립보드 복사 버튼
   - 새로고침 버튼 (1페이지로 초기화 후 재조회)
   - 하단 페이지네이션 (`v-pagination`, 2페이지 이상일 때만 표시)
@@ -167,7 +188,7 @@ App.vue
     | `hasPreviousPage` | boolean | 이전 페이지 존재 여부 |
     | `hasNextPage` | boolean | 다음 페이지 존재 여부 |
 
-  - `items` 배열 항목 공통 필드: `id`, `userId`, `promptType` (`PRODUCT`/`PERSON`), `promptStyle`, `promptText`, `imageUrls[]`, `initRegiPic`, `initRegiDttm`, `finalRvisDttm`
+  - `items` 배열 항목 공통 필드: `id`, `userId`, `promptType` (`PRODUCT`/`PERSON`), `promptStyle`, `promptText`, `imageUrls[]`, `imageAspectRatio`, `initRegiPic`, `initRegiDttm`, `finalRvisDttm`
   - `PRODUCT` 전용: `categoryId`, `categoryPath`, `tagIds[]`, `tagNames[]`
   - `PERSON` 전용: `purpose`, `additionalNotes`, `optionNames[]`
 - **상태**: ✅ 구현됨
@@ -247,9 +268,12 @@ App.vue
   - 사용자 목록 (ID, 로그인 ID, 이름, 권한, 팀, 일일 한도, **금일 사용량**, 등록일)
   - 금일 사용량: `todayUsedCount / dailyLimit` 표시, `remainingCount === 0` 시 빨간 강조
   - 검색 필터 (이름, 팀명, 역할)
-  - 사용자 추가 (ADMIN만 생성 가능 — Closed 방식)
+    - 팀명 검색: **부분일치(클라이언트 사이드 `includes()`)** — 백엔드 API 변경 없이 프론트에서 필터링
+    - 이름 검색: 백엔드 API 파라미터 전달
+  - 사용자 추가 (ADMIN만 생성 가능 — Closed 방식, 기본 일일 한도: **3건**)
   - 사용자 수정 (이름, 역할, 팀명, 일일 한도, 비밀번호)
   - 사용자 삭제
+  - 목록 조회 실패 시 에러 피드백 표시
 - **API**:
   - `GET /api/users?name=&teamName=&role=` — 회원 목록
   - `GET /api/users/usage` — 전체 회원 사용량 (병렬 호출, `userId` 기준 매핑)

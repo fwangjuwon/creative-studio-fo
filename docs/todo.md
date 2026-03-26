@@ -1,8 +1,8 @@
 # TODO
 
 > **프로젝트**: ns-creative-studio-fo
-> **상태**: ✅ 전체 완료 (Step 9 — 사용자 사용량 표시 구현 완료)
-> **최종 업데이트**: 2026-03-12 (Step 9 — 홈 화면 & 사용자 관리 화면 사용량 표시 구현)
+> **상태**: ✅ 전체 완료 (Phase 7 — 팀명 검색 부분일치 개선)
+> **최종 업데이트**: 2026-03-26 (Phase 7 — 사용자 관리 팀명 검색 부분일치 개선)
 
 ---
 
@@ -321,6 +321,79 @@
 - [x] `CategoryView.vue` — `onCategorySelect` 조건 `panelIndex < 2`로 수정
 - [x] `CategoryView.vue` — `clearPanelsFrom` 반복 범위 3으로 수정
 - [x] `CategoryView.vue` — 3단계 컬럼 레이아웃 적용
+
+---
+
+---
+
+## Phase 4. 이미지 생성 기능 확장
+
+### feat: 상품 탭 이미지 생성 버튼 추가 (2026-03-10)
+
+- [x] `PromptNewView.vue` (TAB 1) — 이미지 생성(NanoBanana) 버튼 추가
+- [x] `goodsPromptHistoryId` 저장 후 `POST /api/prompts/goods/generate-image` 호출
+- [x] TAB 1/TAB 2 이미지 표시 영역 + 에러 처리 추가 (TAB 2와 동일 구조)
+
+### feat: 이미지 3장 그리드 & 이력 이미지 토글 (2026-03-11)
+
+- [x] `PromptNewView.vue` — 이미지 결과 3장 그리드 레이아웃 + 각 이미지 다운로드 버튼
+- [x] `PromptHistoryView.vue` — `imageUrls[]` 배열 기반으로 변경
+- [x] `PromptHistoryView.vue` — '이미지 확인(N장)' 버튼 클릭 시 `v-expand-transition` 펼침
+- [x] `PromptHistoryView.vue` — 'N장 생성됨' 이미지 뱃지 표시
+
+### fix: 인물 프롬프트 생성 필수 항목 검증 (2026-03-11)
+
+- [x] `PromptNewView.vue` — `required` Attr 미선택 시 에러 메시지 표시 후 생성 중단
+
+---
+
+## Phase 5. 캐싱 & 테마 & 환경 설정
+
+### feat: 태그 캐싱 — KeepAlive 적용 (2026-03-12)
+
+- [x] `DefaultLayout.vue` — `<keep-alive include="PromptNewView">` 적용
+  - 프롬프트 생성 화면 컴포넌트 상태(태그 목록 등)를 라우트 이동 후에도 유지
+
+### feat: 홈 화면 엔송이 챗봇 UI & 전체 핑크 테마 적용 (2026-03-16)
+
+- [x] `HomeView.vue` — 카카오톡 말풍선 스타일 챗봇 UI (엔송이 아바타 + 사용자 아이콘)
+- [x] `DefaultLayout.vue` — 앱바 흰색 배경 + `banner.png` 적용
+- [x] `DefaultLayout.vue` — 사이드바 연핑크(`#F0C3C1`) 테마 적용
+- [x] `DefaultLayout.vue` — 앱바 우측에 role 칩 + loginId + 오늘 사용량 이동
+- [x] `AuthLayout.vue` / `LoginView.vue` — 로그인 배경 핑크 그라데이션 테마 적용
+- [x] `vuetify.js` — primary 핑크 테마(`#9D6D6F` / `#F0C3C1`) 적용
+- [x] `PromptNewView.vue` — 초기화 버튼 추가 (상품/인물 탭별 전체 상태 리셋)
+- [x] `PromptNewView.vue` — `canGeneratePerson` 조건 추가 (인물 탭 필수 항목 선택 시 버튼 활성화)
+
+### chore: 환경별 API baseURL 분리 & 실행 스크립트 추가 (2026-03-24~25)
+
+- [x] `.env` / `.env.local` / `.env.development` 환경 변수 파일 생성 (`.env.example` 포함)
+- [x] `src/api/index.js` — `baseURL: import.meta.env.VITE_API_BASE_URL || '/api'` 적용
+- [x] `package.json` — `npm run local` 스크립트 추가 (`--mode localhost`)
+- [x] `package.json` — `npm run build:dev` 스크립트 추가 (`--mode development`)
+
+### fix: 로그인 실패 시 401 인터셉터 리다이렉트 문제 수정 (2026-03-25)
+
+- [x] `src/api/index.js` — `/auth/login` URL은 401 리다이렉트 대상에서 제외
+
+---
+
+## Phase 6. 이미지 비율(imageAspectRatio) 지원
+
+### feat: 이미지 사이즈 선택 및 이력 표시 지원 (2026-03-23~24)
+
+- [x] `PromptNewView.vue` — 이미지 사이즈 태그 그룹을 `tagIds`에서 분리, `imageAspectRatio`로 별도 전송 (상품/인물 모두)
+- [x] `PromptNewView.vue` — 이미지 미리보기에 선택한 aspect ratio 적용
+- [x] `PromptHistoryView.vue` — 이력 목록에 `imageAspectRatio` 칩 표시 (상품/인물 모두)
+
+---
+
+## Phase 7. 검색 UX 개선
+
+### feat: 사용자 관리 팀명 검색 부분일치 개선 (2026-03-26)
+
+- [x] `UserView.vue` — 팀명 검색 완전일치(`===`) → 부분일치(`includes()`)로 변경
+  - 백엔드 API 변경 없이 클라이언트 사이드 필터링
 
 ---
 
