@@ -15,7 +15,7 @@ const listError = ref('')
 // userId → { todayUsedCount, remainingCount } 매핑 테이블
 const usageMap = ref({})
 
-// 검색 조건 (이름 부분일치 / 팀명 완전일치 / 권한 완전일치)
+// 검색 조건 (이름 부분일치 / 팀명 부분일치(클라이언트) / 권한 완전일치)
 const searchForm = ref({ name: '', teamName: '', role: '' })
 
 // v-data-table 컬럼 정의
@@ -61,13 +61,15 @@ async function loadAll() {
   try {
     const params = {}
     if (searchForm.value.name) params.name = searchForm.value.name
-    if (searchForm.value.teamName) params.teamName = searchForm.value.teamName
     if (searchForm.value.role) params.role = searchForm.value.role
     const [usersRes] = await Promise.all([
       api.get('/users', { params }),
       fetchUsage(),
     ])
-    users.value = usersRes.data.data ?? []
+    const allUsers = usersRes.data.data ?? []
+    users.value = searchForm.value.teamName
+      ? allUsers.filter(u => u.teamName?.includes(searchForm.value.teamName))
+      : allUsers
   } catch {
     users.value = []
     listError.value = '사용자 목록을 불러오는 중 오류가 발생했습니다.'
@@ -267,7 +269,7 @@ async function onDeleteSubmit() {
             @keyup.enter="loadAll"
           />
         </v-col>
-        <!-- 팀명 검색 (완전일치) -->
+        <!-- 팀명 검색 (부분일치, 클라이언트 필터링) -->
         <v-col cols="12" sm="4">
           <v-text-field
             v-model="searchForm.teamName"
