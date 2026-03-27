@@ -1,8 +1,8 @@
 # TODO
 
 > **프로젝트**: ns-creative-studio-fo
-> **상태**: ✅ 전체 완료 (Phase 7 — 팀명 검색 부분일치 개선)
-> **최종 업데이트**: 2026-03-26 (Phase 7 — 사용자 관리 팀명 검색 부분일치 개선)
+> **상태**: ✅ 전체 완료 (Phase 8 — 참조 이미지 업로드 클라이언트 유효성 검증)
+> **최종 업데이트**: 2026-03-25 (Phase 8 — 참조 이미지 파일 타입·크기 검증 UX 추가)
 
 ---
 
@@ -394,6 +394,26 @@
 
 - [x] `UserView.vue` — 팀명 검색 완전일치(`===`) → 부분일치(`includes()`)로 변경
   - 백엔드 API 변경 없이 클라이언트 사이드 필터링
+
+---
+
+## Phase 8. 보안 UX 개선
+
+### feat: 참조 이미지 업로드 클라이언트 유효성 검증 (2026-03-25)
+
+> **배경**: 백엔드에서 MIME 타입 검증 구현 완료 → 프론트엔드에서도 즉각적인 피드백 제공
+
+- [x] `PromptNewView.vue` — `ALLOWED_IMAGE_TYPES` / `ALLOWED_IMAGE_EXTENSIONS` 상수 정의 (`jpg, jpeg, png, webp`)
+- [x] `PromptNewView.vue` — 파일 크기 상한 상수 정의 (`MAX_IMAGE_SIZE_MB = 10`)
+- [x] `PromptNewView.vue` — `onGoodsReferenceImageChange` 에 3단계 검증 추가
+  1. MIME 타입 검증 (`file.type` — 허용 목록 외 차단)
+  2. 확장자 검증 (`file.name` 기반 이중 방어)
+  3. 파일 크기 검증 (10MB 초과 차단)
+  - 검증 실패 시: 파일 입력 초기화(`fileInputKey++`) + `goodsReferenceImageError` 에러 메시지 세트
+- [x] `PromptNewView.vue` — `accept` 속성 `image/*` → `.jpg,.jpeg,.png,.webp` 명시적 목록으로 변경
+- [x] `PromptNewView.vue` — `v-file-input` 라벨에 허용 형식 안내 문구 추가
+- [x] `PromptNewView.vue` — `v-alert` (error/tonal) 에러 메시지 표시 + 닫기 버튼
+- [x] `PromptNewView.vue` — `resetProduct()` 에 `goodsReferenceImageError` 초기화 추가
 
 ---
 
