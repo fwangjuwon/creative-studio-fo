@@ -318,7 +318,7 @@ async function fetchPersonSteps() {
 // Tab 2로 전환될 때 단계 데이터 로드
 watch(activeTab, (val) => {
   if (val === 'person') fetchPersonSteps()
-})
+}, { immediate: true })
 
 // ───────────────────────────────────────────────
 // 옵션 선택 상태 관리

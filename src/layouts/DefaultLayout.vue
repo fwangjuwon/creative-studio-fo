@@ -26,7 +26,7 @@ async function fetchUsage() {
 
 onMounted(fetchUsage)
 // 페이지 이동 시마다 사용량 갱신 (프롬프트 생성 후 반영)
-watch(route, fetchUsage)
+watch(() => route.fullPath, fetchUsage)
 // 하위 컴포넌트(PromptNewView 등)에서 프롬프트 생성 직후 사용량 즉시 갱신에 사용
 provide('refreshUsage', fetchUsage)
 
