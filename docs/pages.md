@@ -109,6 +109,9 @@ App.vue
      - 재생성 버튼 (마지막 사용 스타일로 재호출)
      - **초기화 버튼** — 카테고리·태그·결과 전체 상태 리셋
   6. **이미지 생성** (NanoBanana)
+     - **참조 이미지 첨부** (선택 사항) — 허용 형식: `jpg, jpeg, png, webp` / 최대 10MB
+       - 클라이언트 검증: MIME 타입 + 확장자 + 파일 크기 (검증 실패 시 즉시 에러 메시지 표시)
+       - 서버 검증: MIME 타입 (백엔드에서 추가 방어)
      - 이미지 생성 버튼 — `goodsPromptHistoryId` 저장 후 이미지 생성 API 호출
      - 결과: 이미지 **3장 그리드** 표시 + 각 이미지 **다운로드 버튼**
 - **API**:
@@ -116,8 +119,8 @@ App.vue
   - `GET /api/tag-groups`
   - `GET /api/tags?tagGroupId=`
   - `POST /api/prompts/goods` → 요청: `{ goodsCategoryId, tagIds[], imageAspectRatio, promptStyle }` / 응답: `{ id, promptText }`
-  - `POST /api/prompts/goods/generate-image` → 이미지 생성 (타임아웃 2분)
-    - 요청: `{ historyId, promptText }`
+  - `POST /api/prompts/goods/generate-image` → 이미지 생성 (타임아웃 2분, multipart/form-data)
+    - 요청: `{ historyId, promptText, imageAspectRatio, referenceImage? }`
     - 응답: `{ imageUrls[] }`
 - **참고**: USER는 일일 생성 한도 초과 시 에러 메시지 표시 (에러코드 `P001`)
 

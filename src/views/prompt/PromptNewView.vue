@@ -180,6 +180,11 @@ const goodsImageAspectRatioValue = computed(() => {
   return w / h
 })
 
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp']
+const MAX_IMAGE_SIZE_MB = 10
+const goodsReferenceImageError = ref('')
+
 async function onGeneratePrompt(promptStyle = 'NANO_BANANA') {
   if (!canGenerate.value) return
   generatingStyle.value = promptStyle
@@ -239,11 +244,39 @@ function onRegenerate() {
 }
 
 function onGoodsReferenceImageChange(file) {
+  goodsReferenceImageError.value = ''
   if (!file) {
     goodsReferenceImage.value = null
     goodsReferenceImagePreview.value = ''
     return
   }
+
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    goodsReferenceImageError.value = `이미지 파일만 첨부할 수 있습니다. (허용: ${ALLOWED_IMAGE_EXTENSIONS.join(', ')})`
+    goodsReferenceImage.value = null
+    goodsReferenceImagePreview.value = ''
+    fileInputKey.value++
+    return
+  }
+
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+  if (!ALLOWED_IMAGE_EXTENSIONS.includes(ext)) {
+    goodsReferenceImageError.value = `허용되지 않는 확장자입니다. (허용: ${ALLOWED_IMAGE_EXTENSIONS.join(', ')})`
+    goodsReferenceImage.value = null
+    goodsReferenceImagePreview.value = ''
+    fileInputKey.value++
+    return
+  }
+
+  const sizeMB = file.size / (1024 * 1024)
+  if (sizeMB > MAX_IMAGE_SIZE_MB) {
+    goodsReferenceImageError.value = `파일 크기가 너무 큽니다. (최대 ${MAX_IMAGE_SIZE_MB}MB, 현재 ${sizeMB.toFixed(1)}MB)`
+    goodsReferenceImage.value = null
+    goodsReferenceImagePreview.value = ''
+    fileInputKey.value++
+    return
+  }
+
   goodsReferenceImage.value = file
   goodsReferenceImagePreview.value = URL.createObjectURL(file)
 }
@@ -494,6 +527,7 @@ function resetProduct() {
   goodsPromptHistoryId.value = null
   goodsReferenceImage.value = null
   goodsReferenceImagePreview.value = ''
+  goodsReferenceImageError.value = ''
   generatedGoodsImageUrls.value = []
   errorMessage.value = ''
   goodsImageErrorMessage.value = ''
@@ -717,8 +751,8 @@ async function copyPersonToClipboard() {
             <v-card-text>
               <v-file-input
                 :key="fileInputKey"
-                label="이미지 첨부"
-                accept="image/*"
+                label="이미지 첨부 (jpg, jpeg, png, webp · 최대 10MB)"
+                accept=".jpg,.jpeg,.png,.webp"
                 prepend-icon="mdi-image-plus"
                 variant="outlined"
                 density="comfortable"
@@ -726,6 +760,15 @@ async function copyPersonToClipboard() {
                 clearable
                 @update:model-value="onGoodsReferenceImageChange"
               />
+              <v-alert
+                v-if="goodsReferenceImageError"
+                type="error"
+                variant="tonal"
+                density="compact"
+                class="mt-2"
+                closable
+                @click:close="goodsReferenceImageError = ''"
+              >{{ goodsReferenceImageError }}</v-alert>
               <div v-if="goodsReferenceImagePreview" class="mt-3 text-center">
                 <img
                   :src="goodsReferenceImagePreview"
