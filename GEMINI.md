@@ -168,6 +168,16 @@ ADMIN > MANAGER > USER
   → 결과 표시 + 클립보드 복사 + 이미지 생성
 ```
 
+**프롬프트 이력 조회** (`/prompt/history`)
+```
+검색 필터 입력 (모두 선택 사항)
+  - 생성자(loginId), 종류(PRODUCT|PERSON), 스타일(NANO_BANANA|MID_JOURNEY)
+  - 생성일 범위(dateFrom, dateTo: yyyy-MM-dd)
+  → 검색 버튼 → GET /api/prompts { pageNum, pageSize, loginId?, promptType?, promptStyle?, dateFrom?, dateTo? }
+  → 이력 카드 목록 표시 (페이징)
+  → 클립보드 복사 / 이미지 확인 (생성된 항목)
+```
+
 ---
 
 ## API 연동 규칙

@@ -164,6 +164,15 @@ App.vue
 - **레이아웃**: DefaultLayout
 - **접근 권한**: 전 역할 (로그인 필수)
 - **기능**:
+  - **검색 필터 영역** (화면 상단 — 모든 필터 선택 사항)
+    - 생성자(`loginId`) 텍스트 입력 — Enter 키 검색 지원
+    - 종류 드롭다운 — 전체 / 상품(`PRODUCT`) / 인물(`PERSON`)
+    - 스타일 드롭다운 — 전체 / NanoBanana(`NANO_BANANA`) / MidJourney(`MID_JOURNEY`)
+    - 생성일 시작(`dateFrom`) / 종료(`dateTo`) 날짜 선택 (`yyyy-MM-dd`)
+    - 검색 버튼 클릭 시 `pageNum=1`로 리셋 후 재조회
+    - 필터 초기화 버튼
+    - 빈 필터는 파라미터 미전송 (빈 문자열 전송 금지)
+    - 페이지 변경 시 현재 필터 조건 유지
   - 프롬프트 생성 이력 카드 목록 표시 (페이지당 10건)
   - 헤더에 총 건수 표시 (`총 N건`)
   - 각 항목: 생성일시, 생성자, 프롬프트 타입(상품/인물) 뱃지, 스타일 뱃지(NanoBanana/MidJourney), 프롬프트 텍스트
@@ -177,8 +186,19 @@ App.vue
   - 하단 페이지네이션 (`v-pagination`, 2페이지 이상일 때만 표시)
   - **USER**: 같은 팀 이력만 표시 (백엔드에서 필터링)
   - **MANAGER / ADMIN**: 전체 이력 표시
-- **API**: `GET /api/prompts?pageNum=1&pageSize=10`
-  - 쿼리 파라미터: `pageNum` (기본값 1), `pageSize` (기본값 10, 최대 1000)
+- **API**: `GET /api/prompts`
+  - 쿼리 파라미터:
+
+    | 파라미터 | 타입 | 필수 | 설명 |
+    |---|---|---|---|
+    | `pageNum` | integer | - | 페이지 번호 (기본값 1) |
+    | `pageSize` | integer | - | 페이지 크기 (기본값 10, 최대 1000) |
+    | `loginId` | string | - | 생성자 필터 (선택) |
+    | `promptType` | string | - | 종류 필터: `PRODUCT` \| `PERSON` (선택) |
+    | `promptStyle` | string | - | 스타일 필터: `NANO_BANANA` \| `MID_JOURNEY` (선택) |
+    | `dateFrom` | string | - | 생성일 시작 포함: `yyyy-MM-dd` (선택) |
+    | `dateTo` | string | - | 생성일 종료 포함: `yyyy-MM-dd` (선택) |
+
   - 응답 `data` 구조 (페이징 객체):
 
     | 필드 | 타입 | 설명 |
