@@ -13,6 +13,26 @@ const pages           = ref(0)
 const hasPreviousPage = ref(false)
 const hasNextPage     = ref(false)
 
+// 검색 필터
+const filterLoginId     = ref('')
+const filterPromptType  = ref(null)
+const filterPromptStyle = ref(null)
+const filterDateFrom    = ref('')
+const filterDateTo      = ref('')
+const dateRangeError    = ref('')
+
+const promptTypeOptions = [
+  { title: '전체', value: null },
+  { title: '상품', value: 'PRODUCT' },
+  { title: '인물', value: 'PERSON' },
+]
+
+const promptStyleOptions = [
+  { title: '전체', value: null },
+  { title: 'NanoBanana', value: 'NANO_BANANA' },
+  { title: 'MidJourney', value: 'MID_JOURNEY' },
+]
+
 // 이미지 패널 펼침 상태 (historyId → boolean)
 const expandedImages = ref({})
 function toggleImages(id) {
@@ -81,7 +101,14 @@ async function fetchHistories(page = pageNum.value) {
   loading.value = true
   errorMessage.value = ''
   try {
-    const res = await api.get('/prompts', { params: { pageNum: page, pageSize: pageSize.value } })
+    const params = { pageNum: page, pageSize: pageSize.value }
+    if (filterLoginId.value?.trim())   params.loginId     = filterLoginId.value.trim()
+    if (filterPromptType.value)       params.promptType  = filterPromptType.value
+    if (filterPromptStyle.value)      params.promptStyle = filterPromptStyle.value
+    if (filterDateFrom.value)         params.dateFrom    = filterDateFrom.value
+    if (filterDateTo.value)           params.dateTo      = filterDateTo.value
+
+    const res = await api.get('/prompts', { params })
     const paged = res.data.data
     histories.value       = paged?.items ?? []
     total.value           = paged?.total ?? 0
@@ -95,12 +122,31 @@ async function fetchHistories(page = pageNum.value) {
   }
 }
 
+function onSearch() {
+  dateRangeError.value = ''
+  if (filterDateFrom.value && filterDateTo.value && filterDateFrom.value > filterDateTo.value) {
+    dateRangeError.value = '시작일이 종료일보다 늦을 수 없습니다.'
+    return
+  }
+  fetchHistories(1)
+}
+
+function onReset() {
+  filterLoginId.value     = ''
+  filterPromptType.value  = null
+  filterPromptStyle.value = null
+  filterDateFrom.value    = ''
+  filterDateTo.value      = ''
+  dateRangeError.value    = ''
+  fetchHistories(1)
+}
+
 onMounted(() => fetchHistories(1))
 </script>
 
 <template>
   <div>
-    <div class="d-flex align-center mb-6">
+    <div class="d-flex align-center mb-4">
       <h2 class="text-h5 font-weight-bold">프롬프트 이력</h2>
       <span v-if="total > 0" class="text-body-2 text-medium-emphasis ml-3">
         총 {{ total.toLocaleString() }}건
@@ -116,6 +162,107 @@ onMounted(() => fetchHistories(1))
         새로고침
       </v-btn>
     </div>
+
+    <!-- 검색 필터 -->
+    <v-card variant="outlined" class="mb-6 pa-4">
+      <v-row dense align="center">
+        <v-col cols="12" sm="6" md="3">
+          <v-text-field
+            v-model="filterLoginId"
+            label="생성자"
+            placeholder="loginId 입력"
+            prepend-inner-icon="mdi-account-search-outline"
+            variant="outlined"
+            density="compact"
+            hide-details
+            clearable
+            @keyup.enter="onSearch"
+          />
+        </v-col>
+        <v-col cols="12" sm="6" md="2">
+          <v-select
+            v-model="filterPromptType"
+            :items="promptTypeOptions"
+            label="종류"
+            prepend-inner-icon="mdi-shape-outline"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="12" sm="6" md="2">
+          <v-select
+            v-model="filterPromptStyle"
+            :items="promptStyleOptions"
+            label="스타일"
+            prepend-inner-icon="mdi-palette-outline"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="12" sm="6" md="2">
+          <v-text-field
+            v-model="filterDateFrom"
+            label="생성일 시작"
+            type="date"
+            prepend-inner-icon="mdi-calendar-start-outline"
+            variant="outlined"
+            density="compact"
+            hide-details
+            clearable
+            :error="!!dateRangeError"
+            @update:model-value="dateRangeError = ''"
+          />
+        </v-col>
+        <v-col cols="12" sm="6" md="2">
+          <v-text-field
+            v-model="filterDateTo"
+            label="생성일 종료"
+            type="date"
+            prepend-inner-icon="mdi-calendar-end-outline"
+            variant="outlined"
+            density="compact"
+            hide-details
+            clearable
+            :error="!!dateRangeError"
+            @update:model-value="dateRangeError = ''"
+          />
+        </v-col>
+        <v-col cols="12" sm="6" md="1" class="d-flex gap-2">
+          <v-btn
+            color="primary"
+            variant="flat"
+            prepend-icon="mdi-magnify"
+            :loading="loading"
+            block
+            @click="onSearch"
+          >
+            검색
+          </v-btn>
+        </v-col>
+      </v-row>
+      <v-row v-if="dateRangeError" dense class="mt-2">
+        <v-col cols="12">
+          <v-alert type="error" variant="tonal" density="compact" class="text-body-2">
+            {{ dateRangeError }}
+          </v-alert>
+        </v-col>
+      </v-row>
+      <v-row dense class="mt-1">
+        <v-col cols="12" class="d-flex justify-end">
+          <v-btn
+            color="secondary"
+            variant="text"
+            size="small"
+            prepend-icon="mdi-filter-remove-outline"
+            @click="onReset"
+          >
+            필터 초기화
+          </v-btn>
+        </v-col>
+      </v-row>
+    </v-card>
 
     <!-- 에러 -->
     <v-alert v-if="errorMessage" type="error" variant="tonal" class="mb-4" closable @click:close="errorMessage = ''">
