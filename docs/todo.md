@@ -1,8 +1,8 @@
 # TODO
 
 > **프로젝트**: ns-creative-studio-fo
-> **상태**: ✅ 전체 완료 (Phase 8 — 참조 이미지 업로드 클라이언트 유효성 검증)
-> **최종 업데이트**: 2026-03-27 (Phase 8 — 참조 이미지 파일 타입·크기 검증 UX 추가)
+> **상태**: ✅ 전체 완료 (Phase 9 — 프롬프트 생성 API 타임아웃 버그 수정)
+> **최종 업데이트**: 2026-03-30 (Phase 9 — 프롬프트 생성 Axios 타임아웃 60초 상향)
 
 ---
 
@@ -414,6 +414,19 @@
 - [x] `PromptNewView.vue` — `v-file-input` 라벨에 허용 형식 안내 문구 추가
 - [x] `PromptNewView.vue` — `v-alert` (error/tonal) 에러 메시지 표시 + 닫기 버튼
 - [x] `PromptNewView.vue` — `resetProduct()` 에 `goodsReferenceImageError` 초기화 추가
+
+---
+
+## Phase 9. 버그 수정
+
+### fix: 프롬프트 생성 API 타임아웃 10초 → 60초 상향 (2026-03-30)
+
+> **원인**: Gemini API 응답이 10초를 초과하면 Axios 기본 타임아웃(10s)에 걸려
+> 요청이 중단(NS_BINDING_ABORTED)되며 프론트엔드에 오류 표시.
+> 백엔드는 요청을 계속 처리해 DB에는 정상 저장되는 간헐적 버그.
+
+- [x] `PromptNewView.vue` — `onGeneratePrompt` (상품 탭) `{ timeout: 60000 }` 추가
+- [x] `PromptNewView.vue` — `generatePersonPrompt` (인물 탭) `{ timeout: 60000 }` 추가
 
 ---
 

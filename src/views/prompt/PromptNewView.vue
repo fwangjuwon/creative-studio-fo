@@ -201,7 +201,7 @@ async function onGeneratePrompt(promptStyle = 'NANO_BANANA') {
       promptStyle,
       purpose: productPurpose.value || null,
       additionalNotes: productAdditionalNotes.value || null,
-    })
+    }, { timeout: 60000 })
     goodsPromptHistoryId.value = res.data.data?.id ?? null
     generatedPrompt.value = res.data.data?.promptText ?? res.data.data ?? ''
 
@@ -492,7 +492,7 @@ async function generatePersonPrompt(promptStyle = 'NANO_BANANA') {
       additionalNotes: personAdditionalNotes.value || null,
       promptStyle,
       imageAspectRatio: personSelectedAspectRatio.value || null,
-    })
+    }, { timeout: 60000 })
     // 이력 ID, 프롬프트 텍스트, 사용된 스타일 저장
     personPromptHistoryId.value = res.data.data?.id ?? null
     generatedPersonPrompt.value = res.data.data?.promptText ?? ''
