@@ -19,6 +19,7 @@ const filterPromptType  = ref(null)
 const filterPromptStyle = ref(null)
 const filterDateFrom    = ref('')
 const filterDateTo      = ref('')
+const dateRangeError    = ref('')
 
 const promptTypeOptions = [
   { title: '전체', value: null },
@@ -122,6 +123,11 @@ async function fetchHistories(page = pageNum.value) {
 }
 
 function onSearch() {
+  dateRangeError.value = ''
+  if (filterDateFrom.value && filterDateTo.value && filterDateFrom.value > filterDateTo.value) {
+    dateRangeError.value = '시작일이 종료일보다 늦을 수 없습니다.'
+    return
+  }
   fetchHistories(1)
 }
 
@@ -131,6 +137,7 @@ function onReset() {
   filterPromptStyle.value = null
   filterDateFrom.value    = ''
   filterDateTo.value      = ''
+  dateRangeError.value    = ''
   fetchHistories(1)
 }
 
@@ -204,6 +211,8 @@ onMounted(() => fetchHistories(1))
             density="compact"
             hide-details
             clearable
+            :error="!!dateRangeError"
+            @update:model-value="dateRangeError = ''"
           />
         </v-col>
         <v-col cols="12" sm="6" md="2">
@@ -216,6 +225,8 @@ onMounted(() => fetchHistories(1))
             density="compact"
             hide-details
             clearable
+            :error="!!dateRangeError"
+            @update:model-value="dateRangeError = ''"
           />
         </v-col>
         <v-col cols="12" sm="6" md="1" class="d-flex gap-2">
@@ -229,6 +240,13 @@ onMounted(() => fetchHistories(1))
           >
             검색
           </v-btn>
+        </v-col>
+      </v-row>
+      <v-row v-if="dateRangeError" dense class="mt-2">
+        <v-col cols="12">
+          <v-alert type="error" variant="tonal" density="compact" class="text-body-2">
+            {{ dateRangeError }}
+          </v-alert>
         </v-col>
       </v-row>
       <v-row dense class="mt-1">

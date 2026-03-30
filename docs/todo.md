@@ -397,7 +397,11 @@
 - [x] `PromptHistoryView.vue` — `onSearch` 함수 추가: 검색 버튼 클릭 시 `pageNum=1` 리셋 후 재조회
 - [x] `PromptHistoryView.vue` — `onReset` 함수 추가: 전체 필터 초기화 + `pageNum=1` 재조회
 - [x] `PromptHistoryView.vue` — 검색 필터 UI 추가 (생성자 텍스트 입력, 종류·스타일 드롭다운, 생성일 범위)
+- [x] `PromptHistoryView.vue` — 생성자 `clearable` X 버튼 클릭 시 `null.trim()` 오류 수정 (`?.` 옵셔널 체이닝)
+- [x] `PromptHistoryView.vue` — 생성일 역전 유효성 검사 추가 (시작일 > 종료일 시 조회 차단 + 에러 표시)
 - [x] `docs/pages.md` — `/prompt/history` 기능 및 API 파라미터 현행화
+- [x] `CLAUDE.md` / `GEMINI.md` — 프롬프트 이력 조회 흐름 다이어그램 추가
+- [x] `.cursor/rules/project-context.mdc` — 이력 검색 필터 파라미터 섹션 추가
 
 ---
 
