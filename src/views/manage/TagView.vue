@@ -53,6 +53,10 @@ async function onAddGroupSubmit() {
     addGroupError.value = '태그 그룹명을 입력해 주세요.'
     return
   }
+  if (tagGroups.value.some(g => g.name === addGroupForm.value.name.trim())) {
+    addGroupError.value = '이미 존재하는 태그 그룹명입니다.'
+    return
+  }
   addGroupLoading.value = true
   addGroupError.value = ''
   try {
@@ -84,6 +88,10 @@ function onEditGroupDialogOpen(group) {
 async function onEditGroupSubmit() {
   if (!editGroupForm.value.name.trim()) {
     editGroupError.value = '태그 그룹명을 입력해 주세요.'
+    return
+  }
+  if (tagGroups.value.some(g => g.name === editGroupForm.value.name.trim() && g.id !== editGroupForm.value.id)) {
+    editGroupError.value = '이미 존재하는 태그 그룹명입니다.'
     return
   }
   editGroupLoading.value = true
@@ -174,6 +182,10 @@ async function onAddTagSubmit() {
     addTagError.value = '태그명을 입력해 주세요.'
     return
   }
+  if (tags.value.some(t => t.name === addTagForm.value.name.trim())) {
+    addTagError.value = '이미 존재하는 태그명입니다.'
+    return
+  }
   addTagLoading.value = true
   addTagError.value = ''
   try {
@@ -206,6 +218,10 @@ function onEditTagDialogOpen(tag) {
 async function onEditTagSubmit() {
   if (!editTagForm.value.name.trim()) {
     editTagError.value = '태그명을 입력해 주세요.'
+    return
+  }
+  if (tags.value.some(t => t.name === editTagForm.value.name.trim() && t.id !== editTagForm.value.id)) {
+    editTagError.value = '이미 존재하는 태그명입니다.'
     return
   }
   editTagLoading.value = true

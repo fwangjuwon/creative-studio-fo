@@ -56,6 +56,14 @@ async function onAddStepSubmit() {
     addStepError.value = '단계 코드와 단계명을 입력해 주세요.'
     return
   }
+  if (steps.value.some(s => s.stepCode === addStepForm.value.stepCode.trim().toUpperCase())) {
+    addStepError.value = '이미 존재하는 단계 코드입니다.'
+    return
+  }
+  if (steps.value.some(s => s.name === addStepForm.value.name.trim())) {
+    addStepError.value = '이미 존재하는 단계명입니다.'
+    return
+  }
   addStepLoading.value = true
   addStepError.value = ''
   try {
@@ -88,6 +96,10 @@ function onEditStepDialogOpen(step) {
 async function onEditStepSubmit() {
   if (!editStepForm.value.name.trim()) {
     editStepError.value = '단계명을 입력해 주세요.'
+    return
+  }
+  if (steps.value.some(s => s.name === editStepForm.value.name.trim() && s.id !== editStepForm.value.id)) {
+    editStepError.value = '이미 존재하는 단계명입니다.'
     return
   }
   editStepLoading.value = true
@@ -155,6 +167,11 @@ async function onAddAttrSubmit() {
     addAttrError.value = '세부항목명을 입력해 주세요.'
     return
   }
+  const addAttrStep = steps.value.find(s => s.id === addAttrStepId.value)
+  if (addAttrStep?.attrs?.some(a => a.name === addAttrForm.value.name.trim())) {
+    addAttrError.value = '이미 존재하는 세부항목명입니다.'
+    return
+  }
   addAttrLoading.value = true
   addAttrError.value = ''
   try {
@@ -196,6 +213,11 @@ function onEditAttrDialogOpen(attr) {
 async function onEditAttrSubmit() {
   if (!editAttrForm.value.name.trim()) {
     editAttrError.value = '세부항목명을 입력해 주세요.'
+    return
+  }
+  const editAttrStep = steps.value.find(s => s.attrs?.some(a => a.id === editAttrForm.value.id))
+  if (editAttrStep?.attrs?.some(a => a.name === editAttrForm.value.name.trim() && a.id !== editAttrForm.value.id)) {
+    editAttrError.value = '이미 존재하는 세부항목명입니다.'
     return
   }
   editAttrLoading.value = true
@@ -261,6 +283,11 @@ async function onAddOptionSubmit() {
     addOptionError.value = '표시명과 영문 프롬프트값을 입력해 주세요.'
     return
   }
+  const addOptionAttr = steps.value.flatMap(s => s.attrs ?? []).find(a => a.id === addOptionAttrId.value)
+  if (addOptionAttr?.options?.some(o => o.name === addOptionForm.value.name.trim())) {
+    addOptionError.value = '이미 존재하는 선택지명입니다.'
+    return
+  }
   addOptionLoading.value = true
   addOptionError.value = ''
   try {
@@ -299,6 +326,11 @@ function onEditOptionDialogOpen(option) {
 async function onEditOptionSubmit() {
   if (!editOptionForm.value.name.trim() || !editOptionForm.value.promptValue.trim()) {
     editOptionError.value = '표시명과 영문 프롬프트값을 입력해 주세요.'
+    return
+  }
+  const editOptionAttr = steps.value.flatMap(s => s.attrs ?? []).find(a => a.options?.some(o => o.id === editOptionForm.value.id))
+  if (editOptionAttr?.options?.some(o => o.name === editOptionForm.value.name.trim() && o.id !== editOptionForm.value.id)) {
+    editOptionError.value = '이미 존재하는 선택지명입니다.'
     return
   }
   editOptionLoading.value = true
