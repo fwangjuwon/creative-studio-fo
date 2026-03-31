@@ -165,5 +165,11 @@ function onLogout() {
         </router-view>
       </v-container>
     </v-main>
+
+    <v-footer app color="white" elevation="1" height="36">
+      <v-spacer />
+      <span class="text-caption text-medium-emphasis">Turn your words into art. Developed by IT개발팀.</span>
+      <v-spacer />
+    </v-footer>
   </v-app>
 </template>
