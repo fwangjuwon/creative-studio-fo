@@ -9,6 +9,12 @@
         </v-row>
       </v-container>
     </v-main>
+
+    <v-footer app color="transparent" height="36">
+      <v-spacer />
+      <span class="text-caption" style="color: rgba(255,255,255,0.7);">Turn your words into art. Developed by IT개발팀.</span>
+      <v-spacer />
+    </v-footer>
   </v-app>
 </template>
 
