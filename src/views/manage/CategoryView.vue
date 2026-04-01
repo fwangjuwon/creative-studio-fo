@@ -80,10 +80,14 @@ async function onAddSubmit() {
     addError.value = '카테고리명을 입력해 주세요.'
     return
   }
+  const panel = panels.value[addTargetPanelIndex.value]
+  if (panel.items.some(item => item.name === addForm.value.name.trim())) {
+    addError.value = '이미 존재하는 카테고리명입니다.'
+    return
+  }
   addLoading.value = true
   addError.value = ''
   try {
-    const panel = panels.value[addTargetPanelIndex.value]
     const payload = {
       name: addForm.value.name.trim(),
       categoryType: CATEGORY_TYPES[addTargetPanelIndex.value],
@@ -121,6 +125,11 @@ function onEditDialogOpen(panelIndex, item) {
 async function onEditSubmit() {
   if (!editForm.value.name.trim()) {
     editError.value = '카테고리명을 입력해 주세요.'
+    return
+  }
+  const panel = panels.value[editTargetPanelIndex.value]
+  if (panel.items.some(item => item.name === editForm.value.name.trim() && item.id !== editForm.value.id)) {
+    editError.value = '이미 존재하는 카테고리명입니다.'
     return
   }
   editLoading.value = true
