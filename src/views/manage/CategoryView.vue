@@ -88,7 +88,6 @@ async function onAddSubmit() {
   addLoading.value = true
   addError.value = ''
   try {
-    const panel = panels.value[addTargetPanelIndex.value]
     const payload = {
       name: addForm.value.name.trim(),
       categoryType: CATEGORY_TYPES[addTargetPanelIndex.value],
