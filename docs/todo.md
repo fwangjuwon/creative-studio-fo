@@ -447,6 +447,22 @@
 
 ---
 
+## Phase 10. 코드리뷰 개선사항 반영
+
+### fix: 404 Not Found 페이지 추가 (2026-04-02)
+
+> **배경**: 코드리뷰 지적사항 [LOW] — 라우터 catch-all이 `/`로 리다이렉트만 하여
+> 존재하지 않는 URL 접근 시 사용자가 왜 홈으로 이동했는지 알 수 없는 UX 문제.
+
+- [x] `src/views/NotFoundView.vue` 신규 생성
+  - http.cat 404 이미지 표시 (`https://http.cat/images/404.jpg`)
+  - 이미지 로드 전 `v-skeleton-loader` 표시 (로딩 UX 개선)
+  - 이미지 로드 실패 시 자연스럽게 숨김 처리 (`@error`)
+  - "홈으로 돌아가기" 버튼 (`secondary` 컬러, 프로젝트 핑크 테마 적용)
+- [x] `src/router/index.js` — catch-all 라우트 `redirect: '/'` → `NotFoundView` 렌더링으로 변경
+
+---
+
 ## 참고 문서
 
 - 화면 설계: [`docs/pages.md`](pages.md)

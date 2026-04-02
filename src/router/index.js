@@ -62,10 +62,11 @@ const routes = [
       },
     ],
   },
-  // 매칭되지 않는 경로 → 홈으로
+  // 매칭되지 않는 경로 → 404
   {
     path: '/:pathMatch(.*)*',
-    redirect: '/',
+    name: 'not-found',
+    component: () => import('@/views/NotFoundView.vue'),
   },
 ]
 
