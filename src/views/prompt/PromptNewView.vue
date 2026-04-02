@@ -206,7 +206,7 @@ async function onGeneratePrompt(promptStyle = 'NANO_BANANA') {
     generatedPrompt.value = res.data.data?.promptText ?? res.data.data ?? ''
 
     generatedStyle.value = promptStyle
-    generatedGoodsImageUrls.value = ''   // 재생성 시 이전 이미지 초기화
+    generatedGoodsImageUrls.value = []
     refreshUsage()  // 앱바 사용량 즉시 갱신
   } catch (err) {
     const code = err.response?.data?.code
