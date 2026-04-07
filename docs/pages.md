@@ -188,7 +188,8 @@ App.vue
   - **MANAGER / ADMIN**: 전체 이력 표시
   - **ADMIN 전용**: 각 이력 카드 우측 하단에 삭제 버튼 표시
     - 삭제 버튼 클릭 → 확인 다이얼로그 표시 ("이력을 삭제하시겠습니까? 연결된 이미지 파일도 함께 삭제됩니다.")
-    - 확인 시 → `DELETE /api/prompts/{id}` 호출 → 해당 항목 목록에서 즉시 제거
+    - 확인 시 → `DELETE /api/prompts/{id}` 호출 → 현재 페이지 재조회 (total/pages 동기화)
+      - 삭제 후 현재 페이지에 항목이 없으면 이전 페이지로 이동
     - 실패 시 → 상단 에러 알림 표시
     - 삭제된 이력 및 연결 이미지 파일 복구 불가
 - **API**: `GET /api/prompts`, `DELETE /api/prompts/{id}` (ADMIN 전용)

@@ -1,14 +1,11 @@
 <script setup>
-// 1. import
 import { ref, computed, onMounted } from 'vue'
 import api from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import { useEscClose } from '@/composables/useEscClose'
 
-// 2. store
 const authStore = useAuthStore()
 
-// 4. reactive state
 const histories = ref([])
 const loading = ref(false)
 const errorMessage = ref('')
@@ -48,10 +45,7 @@ const promptStyleOptions = [
   { title: 'MidJourney', value: 'MID_JOURNEY' },
 ]
 
-// 5. computed
 const isAdmin = computed(() => authStore.userRole === 'ADMIN')
-
-// 6. methods
 const promptTypeLabel = (type) => type === 'PERSON' ? '인물 사진' : '상품 사진'
 const promptTypeColor = (type) => type === 'PERSON' ? 'deep-purple' : 'primary'
 const promptTypeIcon  = (type) => type === 'PERSON' ? 'mdi-account-outline' : 'mdi-image-outline'
@@ -160,8 +154,12 @@ async function confirmDelete() {
   deleteLoading.value = true
   try {
     await api.delete(`/prompts/${deleteTargetId.value}`)
-    histories.value = histories.value.filter(h => h.id !== deleteTargetId.value)
     deleteDialog.value = false
+    // 삭제 후 현재 페이지 재조회 — total/pages 등 페이징 상태 동기화
+    const targetPage = histories.value.length === 1 && pageNum.value > 1
+      ? pageNum.value - 1
+      : pageNum.value
+    await fetchHistories(targetPage)
   } catch (err) {
     errorMessage.value = err.response?.data?.message || '삭제 중 오류가 발생했습니다.'
     deleteDialog.value = false
@@ -171,7 +169,6 @@ async function confirmDelete() {
   }
 }
 
-// 7. lifecycle hooks
 onMounted(() => fetchHistories(1))
 </script>
 
