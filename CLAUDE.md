@@ -282,6 +282,18 @@ axios.get('http://localhost:8080/api/categories')
 | Composable | camelCase 파일명, `use` prefix 함수명 | `useEscClose` |
 | API 모듈 | camelCase | `promptApi.js` |
 
+### 다이얼로그 ESC 처리
+`v-dialog` 를 포함하는 모든 View는 반드시 `useEscClose` composable을 적용한다.
+- dialog ref 선언 직후에 `useEscClose(...dialogRefs)` 를 호출
+- 열려 있는 첫 번째 dialog ref를 ESC 키로 닫음 (인자 전달 순서가 우선순위)
+
+```javascript
+import { useEscClose } from '@/composables/useEscClose'
+
+const deleteDialog = ref(false)
+useEscClose(deleteDialog)
+```
+
 ---
 
 ## 참고 문서
