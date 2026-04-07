@@ -601,6 +601,41 @@ async function copyPersonToClipboard() {
 
 <template>
   <div>
+    <!-- ─── 풀스크린 로딩 오버레이 ─── -->
+    <v-overlay
+      :model-value="generating || generatingGoodsImage || generatingPerson || generatingImage"
+      class="d-flex align-center justify-center"
+      persistent
+      z-index="9999"
+      style="backdrop-filter: blur(4px);"
+    >
+      <div class="text-center">
+        <v-progress-circular
+          indeterminate
+          color="deep-purple"
+          :size="96"
+          :width="8"
+          class="mb-6"
+        />
+        <div class="text-white text-h6 font-weight-bold">
+          <template v-if="generatingGoodsImage || generatingImage">
+            이미지 생성 중...
+          </template>
+          <template v-else>
+            프롬프트 생성 중...
+          </template>
+        </div>
+        <div class="text-white text-body-2 mt-2 opacity-80">
+          <template v-if="generatingGoodsImage || generatingImage">
+            3개의 이미지를 병렬 생성하고 있습니다. 잠시만 기다려주세요.
+          </template>
+          <template v-else>
+            Gemini AI가 최적의 프롬프트를 작성하고 있습니다.
+          </template>
+        </div>
+      </div>
+    </v-overlay>
+
     <div class="d-flex align-center mb-4">
       <h2 class="text-h5 font-weight-bold">프롬프트 생성</h2>
       <v-spacer />
