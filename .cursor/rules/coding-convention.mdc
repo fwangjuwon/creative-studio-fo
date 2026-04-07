@@ -20,16 +20,36 @@ alwaysApply: true
 ## SFC 작성 순서
 
 모든 `.vue` 파일은 반드시 아래 순서로 작성한다.
+**아래 번호는 작성 순서를 설명하는 가이드이며, 실제 코드에 주석으로 작성하지 않는다.**
 
 ```vue
 <script setup>
-// 1. import
-// 2. store / composable
-// 3. props / emits
-// 4. reactive state
-// 5. computed
-// 6. methods
-// 7. lifecycle hooks
+// ① import
+import { ref, computed, onMounted } from 'vue'
+import api from '@/api'
+import { useAuthStore } from '@/stores/auth'
+
+// ② store / composable
+const authStore = useAuthStore()
+useEscClose(someDialog)
+
+// ③ props / emits (해당 없으면 생략)
+const props = defineProps({ id: { type: Number, required: true } })
+const emit = defineEmits(['update:modelValue'])
+
+// ④ reactive state
+const items = ref([])
+const loading = ref(false)
+
+// ⑤ computed
+const isAdmin = computed(() => authStore.userRole === 'ADMIN')
+
+// ⑥ methods
+async function fetchItems() { ... }
+function onSubmit() { ... }
+
+// ⑦ lifecycle hooks
+onMounted(() => fetchItems())
 </script>
 
 <template>
@@ -43,6 +63,7 @@ alwaysApply: true
 
 - `<script setup>` 만 사용. Options API / `export default {}` 사용 금지
 - `<style>`은 반드시 `scoped` 적용
+- 해당하지 않는 섹션(예: props/emits 없는 View)은 생략한다
 
 ---
 

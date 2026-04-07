@@ -259,6 +259,10 @@ axios.get('http://localhost:8080/api/categories')
 > 세부 규칙 전체는 `.cursor/rules/coding-convention.mdc` 참조
 
 ### SFC 작성 순서
+`<script setup>` 내부 작성 순서: import → store/composable → props/emits → reactive state → computed → methods → lifecycle hooks
+- 해당하지 않는 섹션은 생략 (예: props/emits 없는 View에서 관련 코드 불필요)
+- 상세 예시 및 주의사항: `.cursor/rules/coding-convention.mdc` 참조
+
 ```vue
 <script setup> ... </script>
 <template> ... </template>
