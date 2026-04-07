@@ -471,6 +471,23 @@
 
 ---
 
+## Phase 11. ADMIN 전용 프롬프트 이력 삭제 기능
+
+### feat: 프롬프트 이력 삭제 기능 추가 (2026-04-07)
+
+> **배경**: 백엔드에 `DELETE /api/prompts/{id}` API 추가됨 (ADMIN 전용).
+> 프롬프트 이력 목록 화면에서 ADMIN 사용자만 각 이력을 삭제할 수 있도록 구현.
+
+- [x] `PromptHistoryView.vue` — `useAuthStore` import + `isAdmin` 플래그 추가
+- [x] `PromptHistoryView.vue` — `deleteDialog`, `deleteTargetId`, `deleteLoading` ref 추가
+- [x] `PromptHistoryView.vue` — `onDeleteClick(id)` / `confirmDelete()` 함수 추가
+  - 성공 시 `histories.value.filter`로 해당 항목 즉시 제거
+  - 실패 시 `errorMessage`에 백엔드 메시지 표시
+- [x] `PromptHistoryView.vue` — 각 이력 카드 하단에 ADMIN 전용 삭제 버튼 추가 (`v-if="isAdmin"`)
+- [x] `PromptHistoryView.vue` — 삭제 확인 `v-dialog` 추가 ("이력을 삭제하시겠습니까? 연결된 이미지 파일도 함께 삭제됩니다.")
+
+---
+
 ## 참고 문서
 
 - 화면 설계: [`docs/pages.md`](pages.md)
