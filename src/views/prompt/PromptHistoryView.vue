@@ -1,10 +1,20 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import api from '@/api'
+import { useAuthStore } from '@/stores/auth'
+import { useEscClose } from '@/composables/useEscClose'
+
+const authStore = useAuthStore()
 
 const histories = ref([])
 const loading = ref(false)
 const errorMessage = ref('')
+
+const deleteDialog = ref(false)
+const deleteTargetId = ref(null)
+const deleteLoading = ref(false)
+
+useEscClose(deleteDialog)
 
 const pageNum         = ref(1)
 const pageSize        = ref(10)
@@ -13,13 +23,15 @@ const pages           = ref(0)
 const hasPreviousPage = ref(false)
 const hasNextPage     = ref(false)
 
-// 검색 필터
 const filterLoginId     = ref('')
 const filterPromptType  = ref(null)
 const filterPromptStyle = ref(null)
 const filterDateFrom    = ref('')
 const filterDateTo      = ref('')
 const dateRangeError    = ref('')
+
+const expandedImages = ref({})
+const copiedId = ref(null)
 
 const promptTypeOptions = [
   { title: '전체', value: null },
@@ -33,23 +45,15 @@ const promptStyleOptions = [
   { title: 'MidJourney', value: 'MID_JOURNEY' },
 ]
 
-// 이미지 패널 펼침 상태 (historyId → boolean)
-const expandedImages = ref({})
-function toggleImages(id) {
-  expandedImages.value[id] = !expandedImages.value[id]
-}
-
-// 프롬프트 타입 표시
+const isAdmin = computed(() => authStore.userRole === 'ADMIN')
 const promptTypeLabel = (type) => type === 'PERSON' ? '인물 사진' : '상품 사진'
 const promptTypeColor = (type) => type === 'PERSON' ? 'deep-purple' : 'primary'
 const promptTypeIcon  = (type) => type === 'PERSON' ? 'mdi-account-outline' : 'mdi-image-outline'
 
-// 프롬프트 스타일 표시
 const promptStyleLabel = (style) => style === 'MID_JOURNEY' ? 'MidJourney' : 'NanoBanana'
 const promptStyleColor = (style) => style === 'MID_JOURNEY' ? 'teal' : 'primary'
 const promptStyleIcon  = (style) => style === 'MID_JOURNEY' ? 'mdi-format-list-bulleted' : 'mdi-creation'
 
-// 날짜 포맷
 function formatDate(dateStr) {
   if (!dateStr) return '-'
   const d = new Date(dateStr)
@@ -59,7 +63,25 @@ function formatDate(dateStr) {
   })
 }
 
-// 이미지 다운로드
+function toggleImages(id) {
+  expandedImages.value[id] = !expandedImages.value[id]
+}
+
+async function copyToClipboard(text, id) {
+  try {
+    await navigator.clipboard.writeText(text)
+  } catch {
+    const el = document.createElement('textarea')
+    el.value = text
+    document.body.appendChild(el)
+    el.select()
+    document.execCommand('copy')
+    document.body.removeChild(el)
+  }
+  copiedId.value = id
+  setTimeout(() => { copiedId.value = null }, 2000)
+}
+
 async function downloadImage(url, index) {
   try {
     const response = await fetch(url)
@@ -78,31 +100,13 @@ async function downloadImage(url, index) {
   }
 }
 
-// 복사
-const copiedId = ref(null)
-async function copyToClipboard(text, id) {
-  try {
-    await navigator.clipboard.writeText(text)
-  } catch {
-    const el = document.createElement('textarea')
-    el.value = text
-    document.body.appendChild(el)
-    el.select()
-    document.execCommand('copy')
-    document.body.removeChild(el)
-  }
-  copiedId.value = id
-  setTimeout(() => { copiedId.value = null }, 2000)
-}
-
-// 이력 조회
 async function fetchHistories(page = pageNum.value) {
   pageNum.value = page  // v-pagination 스냅백 방지: 렌더링 전에 먼저 반영
   loading.value = true
   errorMessage.value = ''
   try {
     const params = { pageNum: page, pageSize: pageSize.value }
-    if (filterLoginId.value?.trim())   params.loginId     = filterLoginId.value.trim()
+    if (filterLoginId.value?.trim())  params.loginId     = filterLoginId.value.trim()
     if (filterPromptType.value)       params.promptType  = filterPromptType.value
     if (filterPromptStyle.value)      params.promptStyle = filterPromptStyle.value
     if (filterDateFrom.value)         params.dateFrom    = filterDateFrom.value
@@ -139,6 +143,30 @@ function onReset() {
   filterDateTo.value      = ''
   dateRangeError.value    = ''
   fetchHistories(1)
+}
+
+function onDeleteClick(id) {
+  deleteTargetId.value = id
+  deleteDialog.value = true
+}
+
+async function confirmDelete() {
+  deleteLoading.value = true
+  try {
+    await api.delete(`/prompts/${deleteTargetId.value}`)
+    deleteDialog.value = false
+    // 삭제 후 현재 페이지 재조회 — total/pages 등 페이징 상태 동기화
+    const targetPage = histories.value.length === 1 && pageNum.value > 1
+      ? pageNum.value - 1
+      : pageNum.value
+    await fetchHistories(targetPage)
+  } catch (err) {
+    errorMessage.value = err.response?.data?.message || '삭제 중 오류가 발생했습니다.'
+    deleteDialog.value = false
+  } finally {
+    deleteLoading.value = false
+    deleteTargetId.value = null
+  }
 }
 
 onMounted(() => fetchHistories(1))
@@ -445,6 +473,20 @@ onMounted(() => fetchHistories(1))
               >
                 {{ expandedImages[item.id] ? '이미지 닫기' : `이미지 확인 (${item.imageUrls.length}장)` }}
               </v-btn>
+
+              <v-spacer />
+
+              <!-- 삭제 버튼 (ADMIN 전용) -->
+              <v-btn
+                v-if="isAdmin"
+                color="error"
+                variant="text"
+                size="small"
+                prepend-icon="mdi-delete-outline"
+                @click="onDeleteClick(item.id)"
+              >
+                삭제
+              </v-btn>
             </div>
 
             <!-- 이미지 패널 (펼침/접힘) -->
@@ -504,6 +546,38 @@ onMounted(() => fetchHistories(1))
         @update:model-value="fetchHistories"
       />
     </div>
+
+    <!-- 삭제 확인 다이얼로그 -->
+    <v-dialog v-model="deleteDialog" max-width="420" persistent>
+      <v-card>
+        <v-card-title class="d-flex align-center gap-2 pa-4">
+          <v-icon color="error">mdi-alert-circle-outline</v-icon>
+          이력 삭제
+        </v-card-title>
+        <v-divider />
+        <v-card-text class="pa-4 text-body-1">
+          이력을 삭제하시겠습니까?<br />
+          <span class="text-medium-emphasis text-body-2">연결된 이미지 파일도 함께 삭제됩니다.</span>
+        </v-card-text>
+        <v-card-actions class="pa-4 pt-0 justify-end gap-2">
+          <v-btn
+            variant="text"
+            :disabled="deleteLoading"
+            @click="deleteDialog = false"
+          >
+            취소
+          </v-btn>
+          <v-btn
+            color="error"
+            variant="flat"
+            :loading="deleteLoading"
+            @click="confirmDelete"
+          >
+            삭제
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
