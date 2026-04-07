@@ -219,6 +219,39 @@ const emit = defineEmits(['update:modelValue'])
 
 ---
 
+## 다이얼로그 ESC 처리 규칙
+
+`v-dialog` 를 포함하는 모든 View는 반드시 `useEscClose` composable을 적용한다.
+
+```javascript
+// ✅ 올바른 방식 — dialog ref 선언 직후에 호출
+import { useEscClose } from '@/composables/useEscClose'
+
+const deleteDialog = ref(false)
+const editDialog   = ref(false)
+
+useEscClose(deleteDialog, editDialog)  // 열려 있는 첫 번째 dialog를 ESC로 닫음
+```
+
+- `src/composables/useEscClose.js` — `onMounted` / `onUnmounted` 에서 `keydown` 이벤트 등록/해제
+- 인자로 전달된 dialog ref 중 열려 있는 첫 번째를 닫음 (우선순위: 인자 전달 순서)
+- dialog ref 선언 직후, 다른 메서드보다 앞에 호출한다 (기존 View 패턴 준수)
+
+```javascript
+// ❌ 금지 — useEscClose 미적용 (v-dialog 사용 시)
+const dialog = ref(false)
+// useEscClose 없음 → ESC 키로 닫을 수 없음
+```
+
+**적용 현황** (2026-04-07 기준)
+- `CategoryView.vue` — `useEscClose(addDialog, editDialog, deleteDialog)`
+- `TagView.vue` — `useEscClose(addGroupDialog, editGroupDialog, deleteGroupDialog, addTagDialog, editTagDialog, deleteTagDialog)`
+- `UserView.vue` — `useEscClose(createDialog, editDialog, deleteDialog)`
+- `HumanPromptStructureView.vue` — `useEscClose(...)`
+- `PromptHistoryView.vue` — `useEscClose(deleteDialog)`
+
+---
+
 ## 금지 패턴
 
 ```javascript
