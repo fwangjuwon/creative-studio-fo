@@ -75,8 +75,18 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
+
+  // nsist SSO 자동 로그인 — /auth/login?emp_cd=...&org_cd=... 진입 시 처리
+  if (to.name === 'login' && to.query.emp_cd && to.query.org_cd) {
+    try {
+      await authStore.ssoLogin(to.query.emp_cd, to.query.org_cd)
+      return next({ name: 'home' })
+    } catch {
+      return next()
+    }
+  }
 
   // 미로그인 → 로그인 페이지로
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {

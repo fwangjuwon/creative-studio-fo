@@ -38,6 +38,23 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('user', JSON.stringify(userInfo))
   }
 
+  async function ssoLogin(empCd, orgCd) {
+    const response = await api.get('/auth/nsist-login', { params: { empCd, orgCd } })
+    const { accessToken } = response.data.data
+
+    const decoded = decodeJwt(accessToken)
+    const userInfo = {
+      loginId: decoded?.sub || '',
+      role: decoded?.role || '',
+    }
+
+    token.value = accessToken
+    user.value = userInfo
+
+    localStorage.setItem('token', accessToken)
+    localStorage.setItem('user', JSON.stringify(userInfo))
+  }
+
   function logout() {
     token.value = null
     user.value = null
@@ -45,5 +62,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('user')
   }
 
-  return { token, user, isAuthenticated, userRole, login, logout }
+  return { token, user, isAuthenticated, userRole, login, ssoLogin, logout }
 })
