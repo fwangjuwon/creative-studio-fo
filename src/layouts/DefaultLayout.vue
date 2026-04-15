@@ -132,13 +132,15 @@ function onLogout() {
 
       <v-divider />
 
-      <v-list density="compact" nav>
+      <v-list density="default" nav>
         <v-list-item
           v-for="item in navItems"
           :key="item.title"
           :prepend-icon="item.icon"
           :title="item.title"
           :to="item.to"
+          lines="two"
+          class="py-4"
           rounded="lg"
         />
       </v-list>
