@@ -1,8 +1,8 @@
 # TODO
 
 > **프로젝트**: ns-creative-studio-fo
-> **상태**: ✅ 전체 완료 (Phase 9 — 버그 수정)
-> **최종 업데이트**: 2026-04-02 (Phase 9 — 상품 탭 재생성 이미지 초기화 타입 버그 수정)
+> **상태**: ✅ 전체 완료 (Phase 12 — nsist SSO 자동 로그인)
+> **최종 업데이트**: 2026-04-15 (Phase 12 — nsist SSO 자동 로그인 구현)
 
 ---
 
@@ -497,6 +497,25 @@
 - [x] `PromptHistoryView.vue` — `confirmDelete` 내 `filter` 방식 → `fetchHistories` 재조회로 변경
   - 현재 페이지 마지막 항목 삭제 시 `pageNum - 1` 페이지로 이동 처리
 - [x] `PromptHistoryView.vue` — 불필요한 섹션 마커 주석 제거 (`// 1. import` ~ `// 7. lifecycle hooks`)
+
+---
+
+## Phase 12. nsist SSO 자동 로그인
+
+### feat: nsist 서비스 iframe SSO 자동 로그인 구현 (2026-04-15)
+
+> **배경**: nsist(https://nsist.nsmall.com) 서비스에서 우리 서비스를 `<iframe>`으로 임베드.
+> iframe src: `우리프론트도메인/auth/login?emp_cd={empCd}&org_cd={orgCd}&url=...`
+> 백엔드 API: `GET /api/auth/nsist-login?empCd=&orgCd=` — Referer `https://nsist.nsmall.com` 검증 후 JWT 발급.
+
+- [x] `src/api/index.js` — 401 인터셉터 제외 목록에 `/auth/nsist-login` 추가
+  - SSO 실패(401)가 자동 리다이렉트로 처리되지 않고 라우터 guard의 catch로 전달되도록 처리
+- [x] `src/stores/auth.js` — `ssoLogin(empCd, orgCd)` 액션 추가
+  - `GET /api/auth/nsist-login?empCd=&orgCd=` 호출 후 token/user를 localStorage에 저장
+- [x] `src/router/index.js` — `beforeEach` 맨 앞에 SSO 분기 삽입
+  - `to.name === 'login' && to.query.emp_cd && to.query.org_cd` 조건 감지
+  - 성공 → `next({ name: 'home' })` / 실패 → `next()` (일반 로그인 화면 표시)
+  - 기존 로그인 흐름에 영향 없음 (조건 불충족 시 SSO 블록 완전 스킵)
 
 ---
 

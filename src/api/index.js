@@ -24,7 +24,9 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && !error.config.url.includes('/auth/login')) {
+    const AUTH_ENDPOINTS = ['/auth/login', '/auth/nsist-login']
+    const isAuthEndpoint = AUTH_ENDPOINTS.some((ep) => error.config.url.includes(ep))
+    if (error.response?.status === 401 && !isAuthEndpoint) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       window.location.href = '/auth/login'
