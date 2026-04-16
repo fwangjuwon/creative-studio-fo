@@ -182,7 +182,7 @@ const goodsImageAspectRatioValue = computed(() => {
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp']
-const MAX_IMAGE_SIZE_MB = 10
+const MAX_IMAGE_SIZE_MB = 15
 const goodsReferenceImageError = ref('')
 
 async function onGeneratePrompt(promptStyle = 'NANO_BANANA') {
@@ -786,7 +786,7 @@ async function copyPersonToClipboard() {
             <v-card-text>
               <v-file-input
                 :key="fileInputKey"
-                label="이미지 첨부 (jpg, jpeg, png, webp · 최대 10MB)"
+                label="이미지 첨부 (jpg, jpeg, png, webp · 최대 15MB)"
                 accept=".jpg,.jpeg,.png,.webp"
                 prepend-icon="mdi-image-plus"
                 variant="outlined"
