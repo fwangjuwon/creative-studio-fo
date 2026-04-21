@@ -519,6 +519,15 @@
 
 ---
 
+## Phase 13. 운영 개선
+
+### feat: 이미지 다운로드 파일명 UUID 원본값 사용 (2026-04-21)
+
+- [x] `PromptNewView.vue` — `downloadImage` 파일명을 URL에서 직접 추출하도록 변경 (`index` 인자 제거)
+- [x] `PromptHistoryView.vue` — 동일 변경
+
+---
+
 ## 참고 문서
 
 - 화면 설계: [`docs/pages.md`](pages.md)
