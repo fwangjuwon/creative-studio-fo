@@ -519,6 +519,17 @@
 
 ---
 
+## Phase 13. 사용자 관리 테이블 수정일 컬럼 추가
+
+### feat: 사용자 목록에 수정일(finalRvisDttm) 컬럼 추가 (2026-04-21)
+
+- [x] `UserView.vue` — `headers` 배열에 `수정일` 컬럼 추가 (`finalRvisDttm`, `160px`, 등록일 컬럼 뒤)
+- [x] `UserView.vue` — `#item.finalRvisDttm` 슬롯 추가 (기존 `formatDateTime` 재사용)
+- [x] `UserView.vue` — 컬럼 너비 정비: 로그인 ID `130px`, 이름 `90px`, 권한 `90px`, 팀 `130px` 고정
+- [x] `docs/pages.md` — `/manage/users` 사용자 목록 컬럼 목록에 `수정일` 추가
+
+---
+
 ## 참고 문서
 
 - 화면 설계: [`docs/pages.md`](pages.md)
