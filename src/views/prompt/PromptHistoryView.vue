@@ -82,15 +82,15 @@ async function copyToClipboard(text, id) {
   setTimeout(() => { copiedId.value = null }, 2000)
 }
 
-async function downloadImage(url, index) {
+async function downloadImage(url) {
   try {
     const response = await fetch(url)
     const blob = await response.blob()
     const objectUrl = URL.createObjectURL(blob)
-    const ext = url.split('.').pop() || 'jpg'
+    const filename = url.split('/').pop().split('?')[0] || 'generated_image.jpg'
     const link = document.createElement('a')
     link.href = objectUrl
-    link.download = `generated_image_${index + 1}.${ext}`
+    link.download = filename
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -520,7 +520,7 @@ onMounted(() => fetchHistories(1))
                           size="small"
                           prepend-icon="mdi-download"
                           block
-                          @click="downloadImage(url, idx)"
+                          @click="downloadImage(url)"
                         >
                           저장 {{ idx + 1 }}
                         </v-btn>

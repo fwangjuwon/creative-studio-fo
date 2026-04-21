@@ -562,15 +562,15 @@ function onReset() {
 // ───────────────────────────────────────────────
 // 이미지 다운로드 (공통)
 // ───────────────────────────────────────────────
-async function downloadImage(url, index) {
+async function downloadImage(url) {
   try {
     const response = await fetch(url)
     const blob = await response.blob()
     const objectUrl = URL.createObjectURL(blob)
-    const ext = url.split('.').pop() || 'jpg'
+    const filename = url.split('/').pop().split('?')[0] || 'generated_image.jpg'
     const link = document.createElement('a')
     link.href = objectUrl
-    link.download = `generated_image_${index + 1}.${ext}`
+    link.download = filename
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -996,7 +996,7 @@ async function copyPersonToClipboard() {
                       color="deep-purple"
                       variant="tonal"
                       prepend-icon="mdi-download"
-                      @click="downloadImage(url, idx)"
+                      @click="downloadImage(url)"
                     >
                       저장
                     </v-btn>
@@ -1290,7 +1290,7 @@ async function copyPersonToClipboard() {
                         color="deep-purple"
                         variant="tonal"
                         prepend-icon="mdi-download"
-                        @click="downloadImage(url, idx)"
+                        @click="downloadImage(url)"
                       >
                         저장
                       </v-btn>
