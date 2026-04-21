@@ -294,20 +294,26 @@ App.vue
 - **레이아웃**: DefaultLayout
 - **접근 권한**: `ADMIN` 전용
 - **기능**:
-  - 사용자 목록 (ID, 로그인 ID, 이름, 권한, 팀, 일일 한도, **금일 사용량**, 등록일)
+  - 사용자 목록 (ID, 로그인 ID, 이름, 권한, 팀, 일일 한도, **금일 사용량**, **상태**, 등록일)
   - 금일 사용량: `todayUsedCount / dailyLimit` 표시, `remainingCount === 0` 시 빨간 강조
+  - **상태**: `useYn === 'Y'` → 초록 "활성" 칩 / `useYn === 'N'` → 회색 "비활성" 칩
   - 검색 필터 (이름, 팀명, 역할)
     - 팀명 검색: **부분일치(클라이언트 사이드 `includes()`)** — 백엔드 API 변경 없이 프론트에서 필터링
     - 이름 검색: 백엔드 API 파라미터 전달
   - 사용자 추가 (ADMIN만 생성 가능 — Closed 방식, 기본 일일 한도: **3건**)
   - 사용자 수정 (이름, 역할, 팀명, 일일 한도, 비밀번호)
+  - **계정 비활성화/활성화 (ban/unban)**
+    - 활성 계정(`useYn === 'Y'`): 잠금 버튼(주황) 클릭 → 확인 다이얼로그 → 비활성화
+    - 비활성 계정(`useYn === 'N'`): 잠금해제 버튼(초록) 클릭 → 확인 다이얼로그 → 활성화
+    - 비활성화된 계정은 로그인 및 JWT 기반 API 호출이 즉시 차단됨
   - 사용자 삭제
   - 목록 조회 실패 시 에러 피드백 표시
+- **로그인 에러 처리** (`LoginView.vue`): ban된 계정 로그인 시 백엔드 메시지 `"비활성화된 계정입니다."` 그대로 표시 (별도 처리 불필요)
 - **API**:
-  - `GET /api/users?name=&teamName=&role=` — 회원 목록
+  - `GET /api/users?name=&teamName=&role=` — 회원 목록 (응답에 `useYn` 필드 포함)
   - `GET /api/users/usage` — 전체 회원 사용량 (병렬 호출, `userId` 기준 매핑)
   - `POST /api/users`
-  - `PUT /api/users/{id}`
+  - `PUT /api/users/{id}` — 수정 및 ban/unban (`useYn: 'Y'|'N'` 단독 또는 다른 필드와 함께 전송)
   - `DELETE /api/users/{id}`
 - **상태**: ✅ 구현됨
 
