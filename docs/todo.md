@@ -1,8 +1,8 @@
 # TODO
 
 > **프로젝트**: ns-creative-studio-fo
-> **상태**: ✅ 전체 완료 (Phase 13 — 계정 ban/unban 기능)
-> **최종 업데이트**: 2026-04-21 (Phase 13 — 사용자 계정 비활성화/활성화 기능 추가)
+> **상태**: ✅ 전체 완료 (Phase 14 — 계정 ban/unban 기능)
+> **최종 업데이트**: 2026-04-21 (Phase 14 — 사용자 계정 비활성화/활성화 기능 추가)
 
 ---
 
@@ -519,7 +519,16 @@
 
 ---
 
-## Phase 13. 계정 ban/unban 기능 (use_yn)
+## Phase 13. 운영 개선
+
+### feat: 이미지 다운로드 파일명 UUID 원본값 사용 (2026-04-21)
+
+- [x] `PromptNewView.vue` — `downloadImage` 파일명을 URL에서 직접 추출하도록 변경 (`index` 인자 제거)
+- [x] `PromptHistoryView.vue` — 동일 변경
+
+---
+
+## Phase 14. 계정 ban/unban 기능 (use_yn)
 
 ### feat: 사용자 계정 비활성화/활성화 기능 추가 (2026-04-21)
 
