@@ -1,8 +1,8 @@
 # TODO
 
 > **프로젝트**: ns-creative-studio-fo
-> **상태**: ✅ 전체 완료 (Phase 12 — nsist SSO 자동 로그인)
-> **최종 업데이트**: 2026-04-15 (Phase 12 — nsist SSO 자동 로그인 구현)
+> **상태**: ✅ 전체 완료 (Phase 14 — 계정 ban/unban 기능)
+> **최종 업데이트**: 2026-04-21 (Phase 14 — 사용자 계정 비활성화/활성화 기능 추가)
 
 ---
 
@@ -525,6 +525,25 @@
 
 - [x] `PromptNewView.vue` — `downloadImage` 파일명을 URL에서 직접 추출하도록 변경 (`index` 인자 제거)
 - [x] `PromptHistoryView.vue` — 동일 변경
+
+---
+
+## Phase 14. 계정 ban/unban 기능 (use_yn)
+
+### feat: 사용자 계정 비활성화/활성화 기능 추가 (2026-04-21)
+
+> **배경**: 백엔드에 `use_yn` 컬럼 추가. `PUT /api/users/{id}`에 `useYn` 필드 통합.
+> ban된 계정은 로그인 및 기존 JWT 토큰으로의 API 호출이 즉시 차단됨.
+
+- [x] `UserView.vue` — `headers`에 `상태(useYn)` 컬럼 추가
+- [x] `UserView.vue` — `#item.useYn` 슬롯: `Y` → 초록 "활성" 칩 / `N` → 회색 "비활성" 칩
+- [x] `UserView.vue` — actions에 ban/unban 아이콘 버튼 추가 (활성: 주황 잠금 / 비활성: 초록 잠금해제)
+- [x] `UserView.vue` — `banDialog`, `banTarget`, `banLoading`, `banError` ref 추가
+- [x] `UserView.vue` — `onBanDialogOpen`, `onBanSubmit` 함수 추가
+- [x] `UserView.vue` — `useEscClose`에 `banDialog` 추가
+- [x] `UserView.vue` — ban/unban 확인 다이얼로그 추가 (비활성화 시 즉시 차단 안내 문구 포함)
+- [x] `LoginView.vue` — 변경 없음 (기존 `err.response?.data?.message` 표시로 자동 처리)
+- [x] `docs/pages.md` — `/manage/users` 섹션 상태 컬럼·ban 기능·API 스펙 업데이트
 
 ---
 
