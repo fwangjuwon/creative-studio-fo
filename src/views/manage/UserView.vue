@@ -27,9 +27,10 @@ const headers = [
   { title: '팀', key: 'teamName', width: '130px', sortable: false },
   { title: '일일 한도', key: 'dailyLimit', width: '100px', sortable: false, align: 'center' },
   { title: '금일 사용량', key: 'todayUsage', width: '120px', sortable: false, align: 'center' },
+  { title: '상태', key: 'useYn', width: '90px', sortable: false, align: 'center' },
   { title: '등록일', key: 'initRegiDttm', width: '160px', sortable: false },
   { title: '수정일', key: 'finalRvisDttm', width: '160px', sortable: false },
-  { title: '관리', key: 'actions', width: '100px', sortable: false, align: 'center' },
+  { title: '관리', key: 'actions', width: '140px', sortable: false, align: 'center' },
 ]
 
 // 권한 선택지 및 권한별 뱃지 색상
@@ -211,13 +212,44 @@ const deleteTarget = ref(null) // 삭제 대상 사용자
 const deleteLoading = ref(false)
 const deleteError = ref('')
 
-useEscClose(createDialog, editDialog, deleteDialog)
+const banDialog = ref(false)
+const banTarget = ref(null) // ban/unban 대상 사용자
+const banLoading = ref(false)
+const banError = ref('')
+
+useEscClose(createDialog, editDialog, deleteDialog, banDialog)
 
 // 삭제 확인 다이얼로그 열기
 function onDeleteDialogOpen(user) {
   deleteTarget.value = user
   deleteError.value = ''
   deleteDialog.value = true
+}
+
+// ban/unban 확인 다이얼로그 열기
+function onBanDialogOpen(user) {
+  banTarget.value = user
+  banError.value = ''
+  banDialog.value = true
+}
+
+/**
+ * PUT /api/users/:id { useYn } — 계정 활성화/비활성화
+ * useYn 'Y' → 'N' : ban / 'N' → 'Y' : unban
+ */
+async function onBanSubmit() {
+  banLoading.value = true
+  banError.value = ''
+  try {
+    const newUseYn = banTarget.value.useYn === 'Y' ? 'N' : 'Y'
+    await api.put(`/users/${banTarget.value.id}`, { useYn: newUseYn })
+    banDialog.value = false
+    await loadAll()
+  } catch (err) {
+    banError.value = err.response?.data?.message || '계정 상태 변경 중 오류가 발생했습니다.'
+  } finally {
+    banLoading.value = false
+  }
 }
 
 /**
@@ -354,6 +386,17 @@ async function onDeleteSubmit() {
           <span v-else class="text-disabled">-</span>
         </template>
 
+        <!-- 상태 컬럼: 활성/비활성 뱃지 -->
+        <template #item.useYn="{ item }">
+          <v-chip
+            :color="item.useYn === 'Y' ? 'success' : 'default'"
+            size="small"
+            variant="tonal"
+          >
+            {{ item.useYn === 'Y' ? '활성' : '비활성' }}
+          </v-chip>
+        </template>
+
         <!-- 등록일 포맷 변환 -->
         <template #item.initRegiDttm="{ item }">
           {{ formatDateTime(item.initRegiDttm) }}
@@ -364,7 +407,7 @@ async function onDeleteSubmit() {
           {{ formatDateTime(item.finalRvisDttm) }}
         </template>
 
-        <!-- 수정 / 삭제 버튼 -->
+        <!-- 수정 / ban·unban / 삭제 버튼 -->
         <template #item.actions="{ item }">
           <div class="d-flex justify-center gap-1">
             <v-btn
@@ -376,6 +419,16 @@ async function onDeleteSubmit() {
             >
               <v-icon size="16">mdi-pencil</v-icon>
               <v-tooltip activator="parent">수정</v-tooltip>
+            </v-btn>
+            <v-btn
+              icon
+              size="x-small"
+              variant="text"
+              :color="item.useYn === 'Y' ? 'warning' : 'success'"
+              @click="onBanDialogOpen(item)"
+            >
+              <v-icon size="16">{{ item.useYn === 'Y' ? 'mdi-lock-outline' : 'mdi-lock-open-outline' }}</v-icon>
+              <v-tooltip activator="parent">{{ item.useYn === 'Y' ? '비활성화' : '활성화' }}</v-tooltip>
             </v-btn>
             <v-btn
               icon
@@ -623,6 +676,49 @@ async function onDeleteSubmit() {
             @click="onDeleteSubmit"
           >
             삭제
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+    <!-- ─── ban/unban 확인 다이얼로그 ─── -->
+    <v-dialog v-model="banDialog" max-width="400" persistent>
+      <v-card>
+        <v-card-title class="text-h6 pa-4 pb-2 d-flex align-center">
+          <v-icon start :color="banTarget?.useYn === 'Y' ? 'warning' : 'success'">
+            {{ banTarget?.useYn === 'Y' ? 'mdi-lock-outline' : 'mdi-lock-open-outline' }}
+          </v-icon>
+          계정 {{ banTarget?.useYn === 'Y' ? '비활성화' : '활성화' }}
+        </v-card-title>
+        <v-divider />
+        <v-card-text class="pa-4">
+          <p class="text-body-1 mb-2">
+            <strong>{{ banTarget?.name }}</strong>
+            <span class="text-medium-emphasis"> ({{ banTarget?.loginId }})</span>
+            계정을 {{ banTarget?.useYn === 'Y' ? '비활성화' : '활성화' }}하시겠습니까?
+          </p>
+          <p v-if="banTarget?.useYn === 'Y'" class="text-body-2 text-medium-emphasis">
+            비활성화된 계정은 로그인 및 API 호출이 즉시 차단됩니다.
+          </p>
+          <v-alert
+            v-if="banError"
+            type="error"
+            variant="tonal"
+            density="compact"
+            class="mt-3"
+          >
+            {{ banError }}
+          </v-alert>
+        </v-card-text>
+        <v-card-actions class="pa-3 pt-0">
+          <v-spacer />
+          <v-btn variant="text" @click="banDialog = false">취소</v-btn>
+          <v-btn
+            :color="banTarget?.useYn === 'Y' ? 'warning' : 'success'"
+            variant="flat"
+            :loading="banLoading"
+            @click="onBanSubmit"
+          >
+            {{ banTarget?.useYn === 'Y' ? '비활성화' : '활성화' }}
           </v-btn>
         </v-card-actions>
       </v-card>
