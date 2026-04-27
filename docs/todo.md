@@ -1,8 +1,8 @@
 # TODO
 
 > **프로젝트**: ns-creative-studio-fo
-> **상태**: ✅ 전체 완료 (Phase 14 — 계정 ban/unban 기능)
-> **최종 업데이트**: 2026-04-21 (Phase 14 — 사용자 계정 비활성화/활성화 기능 추가)
+> **상태**: ✅ 전체 완료 (Phase 15 — 사용자 관리 수정일 컬럼 추가)
+> **최종 업데이트**: 2026-04-27 (Phase 15 — 사용자 목록에 수정일 컬럼 추가 및 컬럼 너비 정비)
 
 ---
 
@@ -544,6 +544,17 @@
 - [x] `UserView.vue` — ban/unban 확인 다이얼로그 추가 (비활성화 시 즉시 차단 안내 문구 포함)
 - [x] `LoginView.vue` — 변경 없음 (기존 `err.response?.data?.message` 표시로 자동 처리)
 - [x] `docs/pages.md` — `/manage/users` 섹션 상태 컬럼·ban 기능·API 스펙 업데이트
+
+---
+
+## Phase 15. 사용자 관리 테이블 수정일 컬럼 추가
+
+### feat: 사용자 목록에 수정일(finalRvisDttm) 컬럼 추가 (2026-04-27)
+
+- [x] `UserView.vue` — `headers` 배열에 `수정일` 컬럼 추가 (`finalRvisDttm`, `160px`, 등록일 컬럼 뒤)
+- [x] `UserView.vue` — `#item.finalRvisDttm` 슬롯 추가 (기존 `formatDateTime` 재사용)
+- [x] `UserView.vue` — 컬럼 너비 정비: 로그인 ID `130px`, 이름 `90px`, 권한 `90px`, 팀 `130px` 고정
+- [x] `docs/pages.md` — `/manage/users` 사용자 목록 컬럼 목록에 `수정일` 추가
 
 ---
 

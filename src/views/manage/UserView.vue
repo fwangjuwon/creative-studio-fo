@@ -21,14 +21,15 @@ const searchForm = ref({ name: '', teamName: '', role: '' })
 // v-data-table 컬럼 정의
 const headers = [
   { title: 'ID', key: 'id', width: '70px', sortable: false },
-  { title: '로그인 ID', key: 'loginId', sortable: false },
-  { title: '이름', key: 'name', sortable: false },
-  { title: '권한', key: 'role', width: '110px', sortable: false },
-  { title: '팀', key: 'teamName', sortable: false },
+  { title: '로그인 ID', key: 'loginId', width: '130px', sortable: false },
+  { title: '이름', key: 'name', width: '90px', sortable: false },
+  { title: '권한', key: 'role', width: '90px', sortable: false },
+  { title: '팀', key: 'teamName', width: '130px', sortable: false },
   { title: '일일 한도', key: 'dailyLimit', width: '100px', sortable: false, align: 'center' },
   { title: '금일 사용량', key: 'todayUsage', width: '120px', sortable: false, align: 'center' },
   { title: '상태', key: 'useYn', width: '90px', sortable: false, align: 'center' },
   { title: '등록일', key: 'initRegiDttm', width: '160px', sortable: false },
+  { title: '수정일', key: 'finalRvisDttm', width: '160px', sortable: false },
   { title: '관리', key: 'actions', width: '140px', sortable: false, align: 'center' },
 ]
 
@@ -399,6 +400,11 @@ async function onDeleteSubmit() {
         <!-- 등록일 포맷 변환 -->
         <template #item.initRegiDttm="{ item }">
           {{ formatDateTime(item.initRegiDttm) }}
+        </template>
+
+        <!-- 수정일 포맷 변환 -->
+        <template #item.finalRvisDttm="{ item }">
+          {{ formatDateTime(item.finalRvisDttm) }}
         </template>
 
         <!-- 수정 / ban·unban / 삭제 버튼 -->
