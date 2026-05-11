@@ -401,28 +401,43 @@ onMounted(() => fetchHistories(1))
 
             <!-- PERSON 전용: 선택 옵션 + 목적 + 추가 지시 -->
             <template v-else-if="item.promptType === 'PERSON'">
-              <div v-if="(item.optionNames && item.optionNames.length > 0) || item.imageAspectRatio" class="d-flex flex-wrap gap-1 mb-3">
-                <span class="text-caption text-medium-emphasis mr-1 align-self-center">
-                  <v-icon size="14" class="mr-1">mdi-account-details</v-icon>선택 옵션
-                </span>
-                <v-chip
-                  v-for="opt in item.optionNames"
-                  :key="opt"
-                  size="x-small"
-                  color="deep-purple"
-                  variant="tonal"
+              <!-- 인물별 그룹 옵션 -->
+              <template v-if="item.personOptions && item.personOptions.length > 0">
+                <div
+                  v-for="group in item.personOptions"
+                  :key="group.personIndex"
+                  class="mb-2"
                 >
-                  {{ opt }}
-                </v-chip>
+                  <div class="d-flex align-center flex-wrap gap-1">
+                    <v-chip
+                      size="x-small"
+                      :color="group.personIndex === -1 ? 'teal' : 'deep-purple'"
+                      variant="flat"
+                      class="mr-1"
+                    >
+                      {{ group.label }}
+                    </v-chip>
+                    <v-chip
+                      v-for="opt in group.optionNames"
+                      :key="opt"
+                      size="x-small"
+                      :color="group.personIndex === -1 ? 'teal' : 'deep-purple'"
+                      variant="tonal"
+                    >
+                      {{ opt }}
+                    </v-chip>
+                  </div>
+                </div>
                 <v-chip
                   v-if="item.imageAspectRatio"
                   size="x-small"
                   color="secondary"
                   variant="tonal"
+                  class="mb-3"
                 >
                   {{ item.imageAspectRatio }}
                 </v-chip>
-              </div>
+              </template>
               <div v-if="item.purpose" class="mb-2">
                 <span class="text-caption text-medium-emphasis mr-1">
                   <v-icon size="14" class="mr-1">mdi-target</v-icon>생성 목적
