@@ -114,6 +114,7 @@ function onTagToggle(group, tagId) {
   }
 }
 
+
 function isTagSelected(group, tagId) {
   if (group.isMultiSelect) {
     return selectedTags.value[group.id]?.includes(tagId) ?? false
@@ -166,7 +167,7 @@ const errorMessage = ref('')
 const copied = ref(false)
 
 // ───────────────────────────────────────────────
-// Tab 1 이미지 생성 (NanoBanana)
+// Tab 1 이미지 생성 (Nanobanana)
 // ───────────────────────────────────────────────
 const generatedGoodsImageUrls = ref([])
 const generatingGoodsImage = ref(false)
@@ -413,7 +414,7 @@ const personErrorMessage = ref('')
 const personCopied = ref(false)
 
 // ───────────────────────────────────────────────
-// Tab 2 이미지 생성 (NanoBanana)
+// Tab 2 이미지 생성 (Nanobanana)
 // ───────────────────────────────────────────────
 const personPromptHistoryId = ref(null)  // 프롬프트 생성 시 저장된 history ID
 const generatingImage = ref(false)
@@ -858,7 +859,7 @@ async function copyPersonToClipboard() {
             prepend-icon="mdi-creation"
             @click="onGeneratePrompt('NANO_BANANA')"
           >
-            NanoBanana 프롬프트
+            Nanobanana / Higgsfield 프롬프트
           </v-btn>
           <v-btn
             color="teal"
@@ -946,7 +947,7 @@ async function copyPersonToClipboard() {
                 :disabled="generatingGoodsImage"
                 @click="generateGoodsImage"
               >
-                이미지 생성 (NanoBanana)
+                이미지 생성 (Nanobanana)
               </v-btn>
             </div>
           </v-card-text>
@@ -1151,7 +1152,7 @@ async function copyPersonToClipboard() {
               prepend-icon="mdi-creation"
               @click="generatePersonPrompt('NANO_BANANA')"
             >
-              NanoBanana 프롬프트
+              Nanobanana / Higgsfield 프롬프트
             </v-btn>
             <v-btn
               color="teal"
@@ -1239,7 +1240,7 @@ async function copyPersonToClipboard() {
                   :loading="generatingImage"
                   @click="generatePersonImage"
                 >
-                  이미지 생성 (NanoBanana)
+                  이미지 생성 (Nanobanana)
                 </v-btn>
               </div>
             </v-card-text>
