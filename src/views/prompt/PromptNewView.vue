@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch, inject } from 'vue'
+import { ref, computed, onMounted, onActivated, watch, inject } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/api'
 
@@ -49,6 +49,13 @@ onMounted(async () => {
     loadingLcs.value = false
   }
   fetchTagGroups()
+})
+
+onActivated(() => {
+  fetchTagGroups()
+  // 페이지 재진입 시 단계 구조 최신화 (Admin 변경 사항 즉시 반영)
+  stepsLoaded.value = false
+  if (activeTab.value === 'person') fetchPersonSteps()
 })
 
 watch(selectedLcs, async (val) => {
@@ -328,8 +335,29 @@ async function generateGoodsImage() {
 // 단계 구조 로드
 // ───────────────────────────────────────────────
 const personSteps = ref([])
+const commonSteps = ref([])       // is_common=true 단계 (조명/촬영)
+const individualSteps = ref([])   // is_common=false 단계 (피사체/분위기/리얼리즘)
 const loadingSteps = ref(false)
 const stepsLoaded = ref(false)
+
+// 공통 옵션 선택 상태 { attrId: [optionId, ...] }
+const commonSelectedOptions = ref({})
+
+function toggleCommonOption(attr, optionId) {
+  const arr = commonSelectedOptions.value[attr.id] ?? []
+  if (attr.multiSelect) {
+    const idx = arr.indexOf(optionId)
+    if (idx === -1) arr.push(optionId)
+    else arr.splice(idx, 1)
+    commonSelectedOptions.value[attr.id] = arr
+  } else {
+    commonSelectedOptions.value[attr.id] = arr.includes(optionId) ? [] : [optionId]
+  }
+}
+
+function isCommonOptionSelected(attrId, optionId) {
+  return commonSelectedOptions.value[attrId]?.includes(optionId) ?? false
+}
 
 async function fetchPersonSteps() {
   if (stepsLoaded.value) return
@@ -337,10 +365,13 @@ async function fetchPersonSteps() {
   try {
     const res = await api.get('/human-prompts/steps')
     personSteps.value = res.data.data ?? []
-    // 선택 상태 초기화: { attrId: [] } — 단/복수 통일해서 항상 배열
-    for (const step of personSteps.value) {
+    // 공통(isCommon=true) / 개별(isCommon=false) 분리
+    commonSteps.value = personSteps.value.filter(s => s.isCommon)
+    individualSteps.value = personSteps.value.filter(s => !s.isCommon)
+    // 공통 선택 상태 초기화
+    for (const step of commonSteps.value) {
       for (const attr of step.attrs ?? []) {
-        personSelectedOptions.value[attr.id] = []
+        commonSelectedOptions.value[attr.id] = []
       }
     }
     stepsLoaded.value = true
@@ -349,47 +380,86 @@ async function fetchPersonSteps() {
   }
 }
 
+function initPersonOptions() {
+  const opts = {}
+  for (const step of individualSteps.value) {
+    for (const attr of step.attrs ?? []) {
+      opts[attr.id] = []
+    }
+  }
+  return opts
+}
+
 // Tab 2로 전환될 때 단계 데이터 로드
 watch(activeTab, (val) => {
   if (val === 'person') fetchPersonSteps()
 }, { immediate: true })
 
 // ───────────────────────────────────────────────
-// 옵션 선택 상태 관리
-// { attrId: [optionId, ...] }
+// 인원수 선택 + 인물별 옵션 상태 관리
+// personSelectedOptions: Array<{ attrId: optionId[] }> — 인물 인덱스별 선택 상태
 // ───────────────────────────────────────────────
-const personSelectedOptions = ref({})  // attrId → optionId[]
+const personCount = ref(null)  // 1~5
+const personTabIdx = ref(0)    // 현재 활성 인물 탭 인덱스 (0-based)
+const personSelectedOptions = ref([])  // [{ attrId: [optionId, ...] }, ...]
 
-function togglePersonOption(attr, optionId) {
-  const arr = personSelectedOptions.value[attr.id] ?? []
+watch(personCount, (newCount) => {
+  personTabIdx.value = 0
+  if (!newCount) {
+    personSelectedOptions.value = []
+    return
+  }
+  const current = personSelectedOptions.value
+  if (newCount > current.length) {
+    for (let i = current.length; i < newCount; i++) {
+      current.push(initPersonOptions())
+    }
+  } else if (newCount < current.length) {
+    personSelectedOptions.value = current.slice(0, newCount)
+  }
+})
+
+function togglePersonOption(personIndex, attr, optionId) {
+  const opts = personSelectedOptions.value[personIndex]
+  if (!opts) return
+  const arr = opts[attr.id] ?? []
   if (attr.multiSelect) {
-    // 복수 선택
     const idx = arr.indexOf(optionId)
     if (idx === -1) arr.push(optionId)
     else arr.splice(idx, 1)
-    personSelectedOptions.value[attr.id] = arr
+    opts[attr.id] = arr
   } else {
-    // 단일 선택 (이미 선택된 경우 해제)
-    if (arr.includes(optionId)) {
-      personSelectedOptions.value[attr.id] = []
-    } else {
-      personSelectedOptions.value[attr.id] = [optionId]
-    }
+    opts[attr.id] = arr.includes(optionId) ? [] : [optionId]
   }
 }
 
-function isPersonOptionSelected(attrId, optionId) {
-  return personSelectedOptions.value[attrId]?.includes(optionId) ?? false
+function isPersonOptionSelected(personIndex, attrId, optionId) {
+  return personSelectedOptions.value[personIndex]?.[attrId]?.includes(optionId) ?? false
 }
 
-// 필수 항목이 모두 선택됐을 때만 생성 버튼 활성화
+// 공통 필수 항목 + 인물별 필수 항목 모두 선택됐을 때만 활성화
 const canGeneratePerson = computed(() => {
-  if (!stepsLoaded.value) return false
-  for (const step of personSteps.value) {
+  if (!stepsLoaded.value || !personCount.value) return false
+  // 공통 옵션 필수 항목 검증
+  for (const step of commonSteps.value) {
     for (const attr of step.attrs ?? []) {
       if (attr.required) {
-        const selected = personSelectedOptions.value[attr.id]
+        const selected = commonSelectedOptions.value[attr.id]
         if (!selected || selected.length === 0) return false
+      }
+    }
+  }
+  // 인물별 필수 항목 검증
+  const checkCount = personCount.value <= 5 ? personCount.value : 1
+  for (let i = 0; i < checkCount; i++) {
+    const opts = personSelectedOptions.value[i]
+    if (!opts) return false
+    for (const step of individualSteps.value) {
+      for (const attr of step.attrs ?? []) {
+        if (attr.required) {
+          const selected = opts[attr.id]
+          if (!selected || selected.length === 0) return false
+        }
       }
     }
   }
@@ -399,8 +469,8 @@ const canGeneratePerson = computed(() => {
 // ───────────────────────────────────────────────
 // Tab 2 생성 목적 / 추가 지시
 // ───────────────────────────────────────────────
-const personPurpose = ref('')
 const personAdditionalNotes = ref('')
+const personRelationship = ref('')  // 2명 이상 선택 시 인물 간 관계
 
 // ───────────────────────────────────────────────
 // Tab 2 프롬프트 생성
@@ -455,20 +525,47 @@ async function generatePersonImage() {
 }
 
 async function generatePersonPrompt(promptStyle = 'NANO_BANANA') {
-  // 필수 항목(required) 선택 여부 검증
-  const missingAttrs = []
-  for (const step of personSteps.value) {
+  if (!personCount.value) {
+    personErrorMessage.value = '인원수를 선택해 주세요.'
+    return
+  }
+
+  const isGroup = personCount.value > 5
+  const checkCount = isGroup ? 1 : personCount.value
+
+  const buildSelections = (opts) => {
+    const selections = {}
+    for (const [attrId, optionIds] of Object.entries(opts)) {
+      if (optionIds.length > 0) selections[attrId] = optionIds
+    }
+    return selections
+  }
+
+  // 공통 필수 항목 검증
+  const missingList = []
+  for (const step of commonSteps.value) {
     for (const attr of step.attrs ?? []) {
       if (attr.required) {
-        const selected = personSelectedOptions.value[attr.id]
-        if (!selected || selected.length === 0) {
-          missingAttrs.push(attr.name)
+        const selected = commonSelectedOptions.value[attr.id]
+        if (!selected || selected.length === 0) missingList.push(`공통 - ${attr.name}`)
+      }
+    }
+  }
+  // 인물별 필수 항목 검증
+  for (let i = 0; i < checkCount; i++) {
+    const opts = personSelectedOptions.value[i]
+    const label = isGroup ? '공통 옵션' : `사람 ${i + 1}`
+    for (const step of individualSteps.value) {
+      for (const attr of step.attrs ?? []) {
+        if (attr.required) {
+          const selected = opts?.[attr.id]
+          if (!selected || selected.length === 0) missingList.push(`${label} - ${attr.name}`)
         }
       }
     }
   }
-  if (missingAttrs.length > 0) {
-    personErrorMessage.value = `필수 항목을 선택해 주세요: ${missingAttrs.join(', ')}`
+  if (missingList.length > 0) {
+    personErrorMessage.value = `필수 항목을 선택해 주세요: ${missingList.join(', ')}`
     return
   }
 
@@ -479,29 +576,36 @@ async function generatePersonPrompt(promptStyle = 'NANO_BANANA') {
   generatedImageUrls.value = []
 
   try {
-    // selections: { attrId: [optionId, ...] } — 빈 배열인 attr은 제외
-    const selections = {}
-    for (const [attrId, optionIds] of Object.entries(personSelectedOptions.value)) {
-      if (optionIds.length > 0) {
-        selections[attrId] = optionIds
-      }
-    }
+    // 6명 이상: isGroup + 공통 selections 1세트 / 1~5명: persons 배열
+    const payload = isGroup
+      ? {
+          isGroup: true,
+          selections: buildSelections(personSelectedOptions.value[0]),
+        }
+      : {
+          persons: personSelectedOptions.value.map(opts => ({ selections: buildSelections(opts) })),
+        }
 
     const res = await api.post('/human-prompts', {
-      selections,
-      purpose: personPurpose.value || null,
+      ...payload,
+      commonSelections: buildSelections(commonSelectedOptions.value),
+      relationship: (personCount.value >= 2 && personRelationship.value) ? personRelationship.value : null,
       additionalNotes: personAdditionalNotes.value || null,
       promptStyle,
       imageAspectRatio: personSelectedAspectRatio.value || null,
     }, { timeout: 60000 })
-    // 이력 ID, 프롬프트 텍스트, 사용된 스타일 저장
     personPromptHistoryId.value = res.data.data?.id ?? null
     generatedPersonPrompt.value = res.data.data?.promptText ?? ''
     generatedPersonStyle.value = promptStyle
-    refreshUsage()  // 앱바 사용량 즉시 갱신
+    refreshUsage()
   } catch (err) {
-    personErrorMessage.value =
-      err.response?.data?.message || '프롬프트 생성 중 오류가 발생했습니다.'
+    const code = err.response?.data?.code
+    if (code === 'P001') {
+      personErrorMessage.value = '오늘 프롬프트 생성 한도를 초과했습니다. 내일 다시 시도해 주세요.'
+    } else {
+      personErrorMessage.value =
+        err.response?.data?.message || '프롬프트 생성 중 오류가 발생했습니다.'
+    }
   } finally {
     generatingPersonStyle.value = null
   }
@@ -537,13 +641,14 @@ function resetProduct() {
 }
 
 function resetPerson() {
-  for (const step of personSteps.value) {
-    for (const attr of step.attrs ?? []) {
-      personSelectedOptions.value[attr.id] = []
-    }
+  personCount.value = null
+  personTabIdx.value = 0
+  personSelectedOptions.value = []
+  for (const key of Object.keys(commonSelectedOptions.value)) {
+    commonSelectedOptions.value[key] = []
   }
-  personPurpose.value = ''
   personAdditionalNotes.value = ''
+  personRelationship.value = ''
   generatedPersonPrompt.value = ''
   generatedPersonStyle.value = ''
   personPromptHistoryId.value = null
@@ -1022,75 +1127,169 @@ async function copyPersonToClipboard() {
 
         <template v-else>
 
-          <!-- 5단계 선택 카드 -->
-          <v-card
-            v-for="step in personSteps"
-            :key="step.id"
-            class="mb-4"
-            variant="outlined"
-          >
+          <!-- ① 인원수 선택 카드 -->
+          <v-card class="mb-4" variant="outlined">
             <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
-              <v-chip size="small" color="primary" variant="flat" class="mr-2">
-                {{ step.stepNumber }}단계
-              </v-chip>
-              {{ step.name }}
+              <v-icon start>mdi-account-group</v-icon>
+              인원수 선택
+              <v-chip size="x-small" color="error" class="ml-2">필수</v-chip>
             </v-card-title>
             <v-card-text>
-              <div
-                v-for="attr in step.attrs"
-                :key="attr.id"
-                class="mb-5"
-              >
-                <!-- 항목 헤더 -->
-                <div class="d-flex align-center flex-wrap gap-1 mb-2">
-                  <span class="text-body-2 font-weight-medium">{{ attr.name }}</span>
-                  <v-chip
-                    v-if="attr.multiSelect"
-                    size="x-small"
-                    color="blue"
-                    variant="tonal"
-                  >
-                    복수 선택
-                  </v-chip>
-                  <v-chip
-                    v-else
-                    size="x-small"
-                    color="purple"
-                    variant="tonal"
-                  >
-                    단일 선택
-                  </v-chip>
-                  <v-chip
-                    v-if="attr.required"
-                    size="x-small"
-                    color="error"
-                    variant="tonal"
-                  >
-                    필수
-                  </v-chip>
-                </div>
-
-                <!-- 옵션 chips -->
-                <div class="d-flex flex-wrap gap-2">
-                  <v-chip
-                    v-for="option in attr.options"
-                    :key="option.id"
-                    :color="isPersonOptionSelected(attr.id, option.id) ? 'primary' : 'default'"
-                    :variant="isPersonOptionSelected(attr.id, option.id) ? 'flat' : 'outlined'"
-                    class="cursor-pointer"
-                    @click="togglePersonOption(attr, option.id)"
-                  >
-                    {{ option.name }}
-                  </v-chip>
-                </div>
-
-                <v-divider
-                  v-if="step.attrs.indexOf(attr) < step.attrs.length - 1"
-                  class="mt-4"
-                />
+              <div class="d-flex gap-2 flex-wrap">
+                <v-btn
+                  v-for="n in 5"
+                  :key="n"
+                  :color="personCount === n ? 'deep-purple' : 'default'"
+                  :variant="personCount === n ? 'flat' : 'outlined'"
+                  size="large"
+                  min-width="72"
+                  @click="personCount = personCount === n ? null : n"
+                >
+                  {{ n }}명
+                </v-btn>
+                <v-btn
+                  :color="personCount === 6 ? 'deep-purple' : 'default'"
+                  :variant="personCount === 6 ? 'flat' : 'outlined'"
+                  size="large"
+                  min-width="96"
+                  @click="personCount = personCount === 6 ? null : 6"
+                >
+                  6명 이상
+                </v-btn>
+              </div>
+              <div v-if="personCount === 6" class="text-caption text-medium-emphasis mt-2">
+                <v-icon size="small" class="mr-1">mdi-information-outline</v-icon>
+                6명 이상은 피사체 옵션 1세트를 공통 적용합니다.
               </div>
             </v-card-text>
           </v-card>
+
+          <!-- ② 인원수 선택 후: 개별(Step 3,4,5) + 공통(Step 1,2) -->
+          <template v-if="personCount">
+
+            <!-- 1~5명: 인물별 탭 -->
+            <v-card v-if="personCount <= 5" variant="outlined" class="mb-4">
+              <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+                <v-icon start>mdi-account-edit</v-icon>
+                인물별 설정
+              </v-card-title>
+              <v-tabs v-model="personTabIdx" color="deep-purple" show-arrows>
+                <v-tab v-for="n in personCount" :key="n" :value="n - 1">
+                  <v-icon start size="small">mdi-account</v-icon>
+                  사람 {{ n }}
+                </v-tab>
+              </v-tabs>
+              <v-divider />
+              <v-tabs-window v-model="personTabIdx">
+                <v-tabs-window-item v-for="n in personCount" :key="n" :value="n - 1">
+                  <v-card-text>
+                    <template v-for="(step, stepIdx) in individualSteps" :key="step.id">
+                      <div class="d-flex align-center mb-3">
+                        <v-chip size="small" color="primary" variant="flat" class="mr-2">{{ stepIdx + 1 }}단계</v-chip>
+                        <span class="text-body-2 font-weight-medium">{{ step.name }}</span>
+                      </div>
+                      <div v-for="attr in step.attrs" :key="attr.id" class="mb-5">
+                        <div class="d-flex align-center flex-wrap gap-1 mb-2">
+                          <span class="text-body-2 font-weight-medium">{{ attr.name }}</span>
+                          <v-chip v-if="attr.multiSelect" size="x-small" color="blue" variant="tonal">복수 선택</v-chip>
+                          <v-chip v-else size="x-small" color="purple" variant="tonal">단일 선택</v-chip>
+                          <v-chip v-if="attr.required" size="x-small" color="error" variant="tonal">필수</v-chip>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                          <v-chip
+                            v-for="option in attr.options"
+                            :key="option.id"
+                            :color="isPersonOptionSelected(n - 1, attr.id, option.id) ? 'primary' : 'default'"
+                            :variant="isPersonOptionSelected(n - 1, attr.id, option.id) ? 'flat' : 'outlined'"
+                            class="cursor-pointer"
+                            @click="togglePersonOption(n - 1, attr, option.id)"
+                          >{{ option.name }}</v-chip>
+                        </div>
+                        <v-divider v-if="step.attrs.indexOf(attr) < step.attrs.length - 1" class="mt-4" />
+                      </div>
+                      <v-divider v-if="stepIdx < individualSteps.length - 1" class="mb-4" />
+                    </template>
+                  </v-card-text>
+                </v-tabs-window-item>
+              </v-tabs-window>
+            </v-card>
+
+            <!-- 6명 이상: 피사체 공통 옵션 패널 1개 -->
+            <v-card v-else variant="outlined" class="mb-4">
+              <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+                <v-icon start>mdi-account-group</v-icon>
+                인물 공통 설정
+                <span class="text-caption text-medium-emphasis ml-2">(전원 동일 적용)</span>
+              </v-card-title>
+              <v-divider />
+              <v-card-text>
+                <template v-for="(step, stepIdx) in individualSteps" :key="step.id">
+                  <div class="d-flex align-center mb-3">
+                    <v-chip size="small" color="primary" variant="flat" class="mr-2">{{ stepIdx + 1 }}단계</v-chip>
+                    <span class="text-body-2 font-weight-medium">{{ step.name }}</span>
+                  </div>
+                  <div v-for="attr in step.attrs" :key="attr.id" class="mb-5">
+                    <div class="d-flex align-center flex-wrap gap-1 mb-2">
+                      <span class="text-body-2 font-weight-medium">{{ attr.name }}</span>
+                      <v-chip v-if="attr.multiSelect" size="x-small" color="blue" variant="tonal">복수 선택</v-chip>
+                      <v-chip v-else size="x-small" color="purple" variant="tonal">단일 선택</v-chip>
+                      <v-chip v-if="attr.required" size="x-small" color="error" variant="tonal">필수</v-chip>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                      <v-chip
+                        v-for="option in attr.options"
+                        :key="option.id"
+                        :color="isPersonOptionSelected(0, attr.id, option.id) ? 'primary' : 'default'"
+                        :variant="isPersonOptionSelected(0, attr.id, option.id) ? 'flat' : 'outlined'"
+                        class="cursor-pointer"
+                        @click="togglePersonOption(0, attr, option.id)"
+                      >{{ option.name }}</v-chip>
+                    </div>
+                    <v-divider v-if="step.attrs.indexOf(attr) < step.attrs.length - 1" class="mt-4" />
+                  </div>
+                  <v-divider v-if="stepIdx < individualSteps.length - 1" class="mb-4" />
+                </template>
+              </v-card-text>
+            </v-card>
+
+            <!-- 공통 옵션 카드 (조명/배경, 촬영기술) — 인물별 설정 아래 표시 -->
+            <v-card class="mb-4" variant="outlined">
+              <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+                <v-icon start>mdi-camera-outline</v-icon>
+                촬영 환경 설정
+                <span class="text-caption text-medium-emphasis ml-2">(전원 공통 적용)</span>
+              </v-card-title>
+              <v-card-text>
+                <template v-for="(step, stepIdx) in commonSteps" :key="step.id">
+                  <div class="d-flex align-center mb-3">
+                    <v-chip size="small" color="teal" variant="flat" class="mr-2">{{ step.stepNumber }}단계</v-chip>
+                    <span class="text-body-2 font-weight-medium">{{ step.name }}</span>
+                  </div>
+                  <div v-for="attr in step.attrs" :key="attr.id" class="mb-5">
+                    <div class="d-flex align-center flex-wrap gap-1 mb-2">
+                      <span class="text-body-2 font-weight-medium">{{ attr.name }}</span>
+                      <v-chip v-if="attr.multiSelect" size="x-small" color="blue" variant="tonal">복수 선택</v-chip>
+                      <v-chip v-else size="x-small" color="purple" variant="tonal">단일 선택</v-chip>
+                      <v-chip v-if="attr.required" size="x-small" color="error" variant="tonal">필수</v-chip>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                      <v-chip
+                        v-for="option in attr.options"
+                        :key="option.id"
+                        :color="isCommonOptionSelected(attr.id, option.id) ? 'teal' : 'default'"
+                        :variant="isCommonOptionSelected(attr.id, option.id) ? 'flat' : 'outlined'"
+                        class="cursor-pointer"
+                        @click="toggleCommonOption(attr, option.id)"
+                      >{{ option.name }}</v-chip>
+                    </div>
+                    <v-divider v-if="step.attrs.indexOf(attr) < step.attrs.length - 1" class="mt-4" />
+                  </div>
+                  <v-divider v-if="stepIdx < commonSteps.length - 1" class="mb-4" />
+                </template>
+              </v-card-text>
+            </v-card>
+
+          </template>
 
           <!-- 생성 목적 / 추가 지시 -->
           <v-card class="mb-4" variant="outlined">
@@ -1118,15 +1317,18 @@ async function copyPersonToClipboard() {
                   </div>
                 </div>
               </template>
+              <!-- 2명 이상 선택 시: 인물 간 관계 입력 -->
               <v-text-field
-                v-model="personPurpose"
-                label="생성 목적"
-                placeholder="예: SNS 광고용, 커머스 상세페이지, 포트폴리오"
+                v-if="personCount >= 2"
+                v-model="personRelationship"
+                label="인물 간 관계"
+                placeholder="예: 커플, 친구, 가족, 직장 동료, 모델과 스타일리스트"
                 variant="outlined"
                 density="comfortable"
                 clearable
                 hide-details
                 class="mb-4"
+                prepend-inner-icon="mdi-account-multiple"
               />
               <v-textarea
                 v-model="personAdditionalNotes"

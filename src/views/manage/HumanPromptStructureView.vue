@@ -41,12 +41,12 @@ onMounted(() => {
 
 // ─── Step 추가 ───
 const addStepDialog = ref(false)
-const addStepForm = ref({ stepNumber: '', stepCode: '', name: '' })
+const addStepForm = ref({ stepNumber: '', stepCode: '', name: '', isCommon: false })
 const addStepLoading = ref(false)
 const addStepError = ref('')
 
 function onAddStepDialogOpen() {
-  addStepForm.value = { stepNumber: '', stepCode: '', name: '' }
+  addStepForm.value = { stepNumber: '', stepCode: '', name: '', isCommon: false }
   addStepError.value = ''
   addStepDialog.value = true
 }
@@ -71,6 +71,7 @@ async function onAddStepSubmit() {
       stepNumber: Number(addStepForm.value.stepNumber) || 0,
       stepCode: addStepForm.value.stepCode.trim().toUpperCase(),
       name: addStepForm.value.name.trim(),
+      isCommon: addStepForm.value.isCommon,
     })
     addStepDialog.value = false
     await fetchSteps()
@@ -83,12 +84,12 @@ async function onAddStepSubmit() {
 
 // ─── Step 수정 ───
 const editStepDialog = ref(false)
-const editStepForm = ref({ id: null, stepNumber: '', stepCode: '', name: '' })
+const editStepForm = ref({ id: null, stepNumber: '', stepCode: '', name: '', isCommon: false })
 const editStepLoading = ref(false)
 const editStepError = ref('')
 
 function onEditStepDialogOpen(step) {
-  editStepForm.value = { id: step.id, stepNumber: step.stepNumber, stepCode: step.stepCode, name: step.name }
+  editStepForm.value = { id: step.id, stepNumber: step.stepNumber, stepCode: step.stepCode, name: step.name, isCommon: step.isCommon ?? false }
   editStepError.value = ''
   editStepDialog.value = true
 }
@@ -107,7 +108,9 @@ async function onEditStepSubmit() {
   try {
     await api.put(`/human-prompts/steps/${editStepForm.value.id}`, {
       stepNumber: Number(editStepForm.value.stepNumber) || 0,
+      stepCode: editStepForm.value.stepCode.trim().toUpperCase(),
       name: editStepForm.value.name.trim(),
+      isCommon: editStepForm.value.isCommon,
     })
     editStepDialog.value = false
     await fetchSteps()
@@ -115,6 +118,42 @@ async function onEditStepSubmit() {
     editStepError.value = err.response?.data?.message || '단계 수정 중 오류가 발생했습니다.'
   } finally {
     editStepLoading.value = false
+  }
+}
+
+// ─── Step 순서 변경 (위/아래 스왑) ───
+const reorderLoading = ref(false)
+
+async function onMoveStep(step, direction) {
+  const sorted = [...steps.value].sort((a, b) => a.stepNumber - b.stepNumber)
+  const idx = sorted.findIndex(s => s.id === step.id)
+  const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+
+  if (swapIdx < 0 || swapIdx >= sorted.length) return
+
+  const target = sorted[swapIdx]
+  reorderLoading.value = true
+  try {
+    // 두 단계의 stepNumber를 스왑
+    await Promise.all([
+      api.put(`/human-prompts/steps/${step.id}`, {
+        stepNumber: target.stepNumber,
+        stepCode: step.stepCode,
+        name: step.name,
+        isCommon: step.isCommon,
+      }),
+      api.put(`/human-prompts/steps/${target.id}`, {
+        stepNumber: step.stepNumber,
+        stepCode: target.stepCode,
+        name: target.name,
+        isCommon: target.isCommon,
+      }),
+    ])
+    await fetchSteps()
+  } catch {
+    // silent fail
+  } finally {
+    reorderLoading.value = false
   }
 }
 
@@ -436,14 +475,44 @@ async function onDeleteOptionSubmit() {
               @click="onStepSelect(step)"
             >
               <template #title>
-                <span class="text-body-2 font-weight-medium">{{ step.stepCode }}.</span>
-                <span class="text-body-2 ml-1">{{ step.name }}</span>
+                <div class="d-flex align-center gap-1 flex-wrap">
+                  <span class="text-body-2 font-weight-medium">{{ step.stepCode }}.</span>
+                  <span class="text-body-2 ml-1">{{ step.name }}</span>
+                  <v-chip
+                    size="x-small"
+                    :color="step.isCommon ? 'teal' : 'deep-purple'"
+                    variant="tonal"
+                    class="ml-1"
+                  >
+                    {{ step.isCommon ? '공통' : '개별' }}
+                  </v-chip>
+                </div>
               </template>
               <template #subtitle>
                 <span class="text-caption text-medium-emphasis">순서: {{ step.stepNumber }}</span>
               </template>
               <template #append>
-                <div class="d-flex gap-1" @click.stop>
+                <div class="d-flex gap-1 align-center" @click.stop>
+                  <v-btn
+                    icon
+                    size="x-small"
+                    variant="text"
+                    color="secondary"
+                    :disabled="reorderLoading || steps.indexOf(step) === 0"
+                    @click="onMoveStep(step, 'up')"
+                  >
+                    <v-icon size="14">mdi-chevron-up</v-icon>
+                  </v-btn>
+                  <v-btn
+                    icon
+                    size="x-small"
+                    variant="text"
+                    color="secondary"
+                    :disabled="reorderLoading || steps.indexOf(step) === steps.length - 1"
+                    @click="onMoveStep(step, 'down')"
+                  >
+                    <v-icon size="14">mdi-chevron-down</v-icon>
+                  </v-btn>
                   <v-btn
                     icon
                     size="x-small"
@@ -691,8 +760,24 @@ async function onDeleteOptionSubmit() {
             density="comfortable"
             autofocus
             hide-details="auto"
+            class="mb-3"
             @keyup.enter="onAddStepSubmit"
           />
+          <v-switch
+            v-model="addStepForm.isCommon"
+            :color="addStepForm.isCommon ? 'teal' : 'deep-purple'"
+            hide-details
+            density="comfortable"
+          >
+            <template #label>
+              <span class="text-body-2">
+                적용 방식:
+                <v-chip size="x-small" :color="addStepForm.isCommon ? 'teal' : 'deep-purple'" variant="flat" class="ml-1">
+                  {{ addStepForm.isCommon ? '전원 공통' : '인물별 개별' }}
+                </v-chip>
+              </span>
+            </template>
+          </v-switch>
           <v-alert
             v-if="addStepError"
             type="error"
@@ -733,12 +818,13 @@ async function onDeleteOptionSubmit() {
           />
           <v-text-field
             v-model="editStepForm.stepCode"
-            label="단계 코드 (수정 불가)"
+            label="단계 코드"
             variant="outlined"
             density="comfortable"
             hide-details="auto"
             class="mb-3"
-            disabled
+            hint="알파벳 권장 (A, B, C…)"
+            persistent-hint
           />
           <v-text-field
             v-model="editStepForm.name"
@@ -747,8 +833,24 @@ async function onDeleteOptionSubmit() {
             density="comfortable"
             autofocus
             hide-details="auto"
+            class="mb-3"
             @keyup.enter="onEditStepSubmit"
           />
+          <v-switch
+            v-model="editStepForm.isCommon"
+            :color="editStepForm.isCommon ? 'teal' : 'deep-purple'"
+            hide-details
+            density="comfortable"
+          >
+            <template #label>
+              <span class="text-body-2">
+                적용 방식:
+                <v-chip size="x-small" :color="editStepForm.isCommon ? 'teal' : 'deep-purple'" variant="flat" class="ml-1">
+                  {{ editStepForm.isCommon ? '전원 공통' : '인물별 개별' }}
+                </v-chip>
+              </span>
+            </template>
+          </v-switch>
           <v-alert
             v-if="editStepError"
             type="error"
