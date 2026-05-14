@@ -598,8 +598,13 @@ async function generatePersonPrompt(promptStyle = 'NANO_BANANA') {
     generatedPersonStyle.value = promptStyle
     refreshUsage()
   } catch (err) {
-    personErrorMessage.value =
-      err.response?.data?.message || '프롬프트 생성 중 오류가 발생했습니다.'
+    const code = err.response?.data?.code
+    if (code === 'P001') {
+      personErrorMessage.value = '오늘 프롬프트 생성 한도를 초과했습니다. 내일 다시 시도해 주세요.'
+    } else {
+      personErrorMessage.value =
+        err.response?.data?.message || '프롬프트 생성 중 오류가 발생했습니다.'
+    }
   } finally {
     generatingPersonStyle.value = null
   }
