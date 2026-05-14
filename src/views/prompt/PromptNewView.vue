@@ -137,7 +137,8 @@ const selectedImageAspectRatio = computed(() => {
   if (!imageSizeGroup.value) return null
   const tagId = selectedTags.value[imageSizeGroup.value.id]
   if (!tagId) return null
-  return tagsByGroup.value[imageSizeGroup.value.id]?.find(t => t.id === tagId)?.name ?? null
+  const tag = tagsByGroup.value[imageSizeGroup.value.id]?.find(t => t.id === tagId)
+  return tag ? (tag.tagValue ?? tag.name) : null
 })
 
 const allSelectedTagIds = computed(() => {
@@ -1307,10 +1308,10 @@ async function copyPersonToClipboard() {
                     <v-chip
                       v-for="tag in tagsByGroup[imageSizeGroup.id]"
                       :key="tag.id"
-                      :color="personSelectedAspectRatio === tag.name ? 'primary' : 'default'"
-                      :variant="personSelectedAspectRatio === tag.name ? 'flat' : 'outlined'"
+                      :color="personSelectedAspectRatio === (tag.tagValue ?? tag.name) ? 'primary' : 'default'"
+                      :variant="personSelectedAspectRatio === (tag.tagValue ?? tag.name) ? 'flat' : 'outlined'"
                       class="cursor-pointer"
-                      @click="personSelectedAspectRatio = personSelectedAspectRatio === tag.name ? null : tag.name"
+                      @click="personSelectedAspectRatio = personSelectedAspectRatio === (tag.tagValue ?? tag.name) ? null : (tag.tagValue ?? tag.name)"
                     >
                       {{ tag.name }}
                     </v-chip>
