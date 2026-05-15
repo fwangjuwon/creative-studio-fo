@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import api from '@/api'
 import { useEscClose } from '@/composables/useEscClose'
 
@@ -167,12 +167,12 @@ async function fetchTags(groupId) {
 
 // ─── 태그 추가 ───
 const addTagDialog = ref(false)
-const addTagForm = ref({ name: '', sortOrder: 0 })
+const addTagForm = ref({ name: '', tagValue: '', sortOrder: 0 })
 const addTagLoading = ref(false)
 const addTagError = ref('')
 
 function onAddTagDialogOpen() {
-  addTagForm.value = { name: '', sortOrder: 0 }
+  addTagForm.value = { name: '', tagValue: '', sortOrder: 0 }
   addTagError.value = ''
   addTagDialog.value = true
 }
@@ -191,6 +191,7 @@ async function onAddTagSubmit() {
   try {
     await api.post('/tags', {
       name: addTagForm.value.name.trim(),
+      tagValue: addTagForm.value.tagValue.trim() || null,
       tagGroupId: selectedGroupId.value,
       sortOrder: Number(addTagForm.value.sortOrder) || 0,
     })
@@ -205,12 +206,12 @@ async function onAddTagSubmit() {
 
 // ─── 태그 수정 ───
 const editTagDialog = ref(false)
-const editTagForm = ref({ id: null, name: '', sortOrder: 0 })
+const editTagForm = ref({ id: null, name: '', tagValue: '', sortOrder: 0 })
 const editTagLoading = ref(false)
 const editTagError = ref('')
 
 function onEditTagDialogOpen(tag) {
-  editTagForm.value = { id: tag.id, name: tag.name, sortOrder: tag.sortOrder ?? 0 }
+  editTagForm.value = { id: tag.id, name: tag.name, tagValue: tag.tagValue ?? '', sortOrder: tag.sortOrder ?? 0 }
   editTagError.value = ''
   editTagDialog.value = true
 }
@@ -229,6 +230,7 @@ async function onEditTagSubmit() {
   try {
     await api.put(`/tags/${editTagForm.value.id}`, {
       name: editTagForm.value.name.trim(),
+      tagValue: editTagForm.value.tagValue.trim() || null,
       sortOrder: Number(editTagForm.value.sortOrder) || 0,
     })
     editTagDialog.value = false
@@ -245,6 +247,12 @@ const deleteTagDialog = ref(false)
 const deleteTagTarget = ref(null)
 const deleteTagLoading = ref(false)
 const deleteTagError = ref('')
+
+// 이미지 사이즈 그룹일 때만 실제값 필드 표시
+const selectedGroup = computed(() => tagGroups.value.find(g => g.id === selectedGroupId.value) ?? null)
+const showTagValue = computed(() =>
+  selectedGroup.value?.name?.trim().replace(/\s+/g, ' ') === '이미지 사이즈'
+)
 
 useEscClose(addGroupDialog, editGroupDialog, deleteGroupDialog, addTagDialog, editTagDialog, deleteTagDialog)
 
@@ -640,13 +648,24 @@ async function onDeleteTagSubmit() {
         <v-card-text class="pa-4">
           <v-text-field
             v-model="addTagForm.name"
-            label="태그명"
+            label="표시명"
             variant="outlined"
             density="comfortable"
             autofocus
             hide-details="auto"
             class="mb-3"
             @keyup.enter="onAddTagSubmit"
+          />
+          <v-text-field
+            v-if="showTagValue"
+            v-model="addTagForm.tagValue"
+            label="실제값 (선택)"
+            placeholder="예: 365:825, 12288:1728"
+            hint="비율값이 표시명과 다를 경우 입력"
+            persistent-hint
+            variant="outlined"
+            density="comfortable"
+            class="mb-3"
           />
           <v-text-field
             v-model.number="addTagForm.sortOrder"
@@ -692,13 +711,24 @@ async function onDeleteTagSubmit() {
         <v-card-text class="pa-4">
           <v-text-field
             v-model="editTagForm.name"
-            label="태그명"
+            label="표시명"
             variant="outlined"
             density="comfortable"
             autofocus
             hide-details="auto"
             class="mb-3"
             @keyup.enter="onEditTagSubmit"
+          />
+          <v-text-field
+            v-if="showTagValue"
+            v-model="editTagForm.tagValue"
+            label="실제값 (선택)"
+            placeholder="예: 365:825, 12288:1728"
+            hint="비율값이 표시명과 다를 경우 입력"
+            persistent-hint
+            variant="outlined"
+            density="comfortable"
+            class="mb-3"
           />
           <v-text-field
             v-model.number="editTagForm.sortOrder"
