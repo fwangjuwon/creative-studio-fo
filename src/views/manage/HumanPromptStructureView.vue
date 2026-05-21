@@ -41,23 +41,19 @@ onMounted(() => {
 
 // ─── Step 추가 ───
 const addStepDialog = ref(false)
-const addStepForm = ref({ stepNumber: '', stepCode: '', name: '', isCommon: false })
+const addStepForm = ref({ stepNumber: null, name: '', isCommon: false })
 const addStepLoading = ref(false)
 const addStepError = ref('')
 
 function onAddStepDialogOpen() {
-  addStepForm.value = { stepNumber: '', stepCode: '', name: '', isCommon: false }
+  addStepForm.value = { stepNumber: null, name: '', isCommon: false }
   addStepError.value = ''
   addStepDialog.value = true
 }
 
 async function onAddStepSubmit() {
-  if (!addStepForm.value.stepCode.trim() || !addStepForm.value.name.trim()) {
-    addStepError.value = '단계 코드와 단계명을 입력해 주세요.'
-    return
-  }
-  if (steps.value.some(s => s.stepCode === addStepForm.value.stepCode.trim().toUpperCase())) {
-    addStepError.value = '이미 존재하는 단계 코드입니다.'
+  if (!addStepForm.value.name.trim()) {
+    addStepError.value = '단계명을 입력해 주세요.'
     return
   }
   if (steps.value.some(s => s.name === addStepForm.value.name.trim())) {
@@ -68,8 +64,7 @@ async function onAddStepSubmit() {
   addStepError.value = ''
   try {
     await api.post('/human-prompts/steps', {
-      stepNumber: Number(addStepForm.value.stepNumber) || 0,
-      stepCode: addStepForm.value.stepCode.trim().toUpperCase(),
+      stepNumber: addStepForm.value.stepNumber > 0 ? Number(addStepForm.value.stepNumber) : null,
       name: addStepForm.value.name.trim(),
       isCommon: addStepForm.value.isCommon,
     })
@@ -190,13 +185,13 @@ async function onDeleteStepSubmit() {
 // ─── Attr 추가 ───
 const addAttrDialog = ref(false)
 const addAttrStepId = ref(null)
-const addAttrForm = ref({ name: '', isMultiSelect: false, isRequired: false, sortOrder: 0 })
+const addAttrForm = ref({ name: '', isMultiSelect: false, isRequired: false, sortOrder: null })
 const addAttrLoading = ref(false)
 const addAttrError = ref('')
 
 function onAddAttrDialogOpen(stepId) {
   addAttrStepId.value = stepId
-  addAttrForm.value = { name: '', isMultiSelect: false, isRequired: false, sortOrder: 0 }
+  addAttrForm.value = { name: '', isMultiSelect: false, isRequired: false, sortOrder: null }
   addAttrError.value = ''
   addAttrDialog.value = true
 }
@@ -219,7 +214,8 @@ async function onAddAttrSubmit() {
       name: addAttrForm.value.name.trim(),
       isMultiSelect: addAttrForm.value.isMultiSelect,
       isRequired: addAttrForm.value.isRequired,
-      sortOrder: Number(addAttrForm.value.sortOrder) || 0,
+      // v-model.number는 빈 필드를 0으로 변환하므로 0 이하는 null로 처리 → BO에서 자동 증가
+      sortOrder: addAttrForm.value.sortOrder > 0 ? Number(addAttrForm.value.sortOrder) : null,
     })
     addAttrDialog.value = false
     await fetchSteps()
@@ -306,13 +302,13 @@ async function onDeleteAttrSubmit() {
 // ─── Option 추가 ───
 const addOptionDialog = ref(false)
 const addOptionAttrId = ref(null)
-const addOptionForm = ref({ name: '', promptValue: '', sortOrder: 0 })
+const addOptionForm = ref({ name: '', promptValue: '', sortOrder: null })
 const addOptionLoading = ref(false)
 const addOptionError = ref('')
 
 function onAddOptionDialogOpen(attrId) {
   addOptionAttrId.value = attrId
-  addOptionForm.value = { name: '', promptValue: '', sortOrder: 0 }
+  addOptionForm.value = { name: '', promptValue: '', sortOrder: null }
   addOptionError.value = ''
   addOptionDialog.value = true
 }
@@ -334,7 +330,8 @@ async function onAddOptionSubmit() {
       attrId: addOptionAttrId.value,
       name: addOptionForm.value.name.trim(),
       promptValue: addOptionForm.value.promptValue.trim(),
-      sortOrder: Number(addOptionForm.value.sortOrder) || 0,
+      // v-model.number는 빈 필드를 0으로 변환하므로 0 이하는 null로 처리 → BO에서 자동 증가
+      sortOrder: addOptionForm.value.sortOrder > 0 ? Number(addOptionForm.value.sortOrder) : null,
     })
     addOptionDialog.value = false
     await fetchSteps()
@@ -476,7 +473,7 @@ async function onDeleteOptionSubmit() {
             >
               <template #title>
                 <div class="d-flex align-center gap-1 flex-wrap">
-                  <span class="text-body-2 font-weight-medium">{{ step.stepCode }}.</span>
+                  <span class="text-body-2 font-weight-medium">{{ step.stepNumber }}.</span>
                   <span class="text-body-2 ml-1">{{ step.name }}</span>
                   <v-chip
                     size="x-small"
@@ -559,7 +556,7 @@ async function onDeleteOptionSubmit() {
             <v-icon size="small" start>mdi-format-list-bulleted</v-icon>
             세부항목 (Attr)
             <span v-if="selectedStep" class="ml-1 text-primary">
-              — {{ selectedStep.stepCode }}. {{ selectedStep.name }}
+              — {{ selectedStep.stepNumber }}. {{ selectedStep.name }}
             </span>
             <v-chip
               v-if="selectedStep?.attrs?.length > 0"
@@ -736,21 +733,13 @@ async function onDeleteOptionSubmit() {
         <v-card-text class="pa-4">
           <v-text-field
             v-model.number="addStepForm.stepNumber"
-            label="순서 번호"
+            label="순서 번호 (선택 사항)"
             type="number"
             variant="outlined"
             density="comfortable"
-            hide-details="auto"
-            class="mb-3"
-          />
-          <v-text-field
-            v-model="addStepForm.stepCode"
-            label="단계 코드 (생성 후 수정 불가)"
-            variant="outlined"
-            density="comfortable"
-            hide-details="auto"
-            hint="알파벳 권장 (A, B, C…)"
+            hint="미입력 시 자동으로 마지막 순서로 세팅됩니다."
             persistent-hint
+            clearable
             class="mb-3"
           />
           <v-text-field
@@ -881,7 +870,7 @@ async function onDeleteOptionSubmit() {
         <v-divider />
         <v-card-text class="pa-4">
           <p class="text-body-1 mb-2">
-            <strong>{{ deleteStepTarget?.stepCode }}. {{ deleteStepTarget?.name }}</strong> 단계를 삭제하시겠습니까?
+            <strong>{{ deleteStepTarget?.stepNumber }}. {{ deleteStepTarget?.name }}</strong> 단계를 삭제하시겠습니까?
           </p>
           <p class="text-body-2 text-medium-emphasis">이 작업은 되돌릴 수 없습니다.</p>
           <v-alert
@@ -925,11 +914,13 @@ async function onDeleteOptionSubmit() {
           />
           <v-text-field
             v-model.number="addAttrForm.sortOrder"
-            label="정렬 순서"
+            label="정렬 순서 (선택 사항)"
             type="number"
             variant="outlined"
             density="comfortable"
-            hide-details="auto"
+            hint="미입력 시 자동으로 마지막 순서로 세팅됩니다."
+            persistent-hint
+            clearable
             class="mb-3"
           />
           <v-switch
@@ -1093,11 +1084,14 @@ async function onDeleteOptionSubmit() {
           />
           <v-text-field
             v-model.number="addOptionForm.sortOrder"
-            label="정렬 순서"
+            label="정렬 순서 (선택 사항)"
             type="number"
             variant="outlined"
             density="comfortable"
-            hide-details="auto"
+            hint="미입력 시 자동으로 마지막 순서로 세팅됩니다."
+            persistent-hint
+            clearable
+            class="mb-3"
           />
           <v-alert
             v-if="addOptionError"

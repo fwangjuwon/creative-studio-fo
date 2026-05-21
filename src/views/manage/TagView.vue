@@ -167,12 +167,12 @@ async function fetchTags(groupId) {
 
 // ─── 태그 추가 ───
 const addTagDialog = ref(false)
-const addTagForm = ref({ name: '', tagValue: '', sortOrder: 0 })
+const addTagForm = ref({ name: '', tagValue: '', sortOrder: null })
 const addTagLoading = ref(false)
 const addTagError = ref('')
 
 function onAddTagDialogOpen() {
-  addTagForm.value = { name: '', tagValue: '', sortOrder: 0 }
+  addTagForm.value = { name: '', tagValue: '', sortOrder: null }
   addTagError.value = ''
   addTagDialog.value = true
 }
@@ -193,7 +193,8 @@ async function onAddTagSubmit() {
       name: addTagForm.value.name.trim(),
       tagValue: addTagForm.value.tagValue.trim() || null,
       tagGroupId: selectedGroupId.value,
-      sortOrder: Number(addTagForm.value.sortOrder) || 0,
+      // v-model.number는 빈 필드를 0으로 변환하므로 0 이하는 null로 처리 → BO에서 자동 증가
+      sortOrder: addTagForm.value.sortOrder > 0 ? Number(addTagForm.value.sortOrder) : null,
     })
     addTagDialog.value = false
     await fetchTags(selectedGroupId.value)
@@ -669,11 +670,14 @@ async function onDeleteTagSubmit() {
           />
           <v-text-field
             v-model.number="addTagForm.sortOrder"
-            label="정렬 순서"
+            label="정렬 순서 (선택 사항)"
             type="number"
             variant="outlined"
             density="comfortable"
-            hide-details="auto"
+            hint="미입력 시 자동으로 마지막 순서로 세팅됩니다."
+            persistent-hint
+            clearable
+            class="mb-3"
           />
           <v-alert
             v-if="addTagError"
