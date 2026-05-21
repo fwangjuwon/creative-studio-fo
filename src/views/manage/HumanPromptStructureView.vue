@@ -41,12 +41,12 @@ onMounted(() => {
 
 // ─── Step 추가 ───
 const addStepDialog = ref(false)
-const addStepForm = ref({ stepNumber: null, stepCode: '', name: '', isCommon: false })
+const addStepForm = ref({ stepNumber: null, name: '', isCommon: false })
 const addStepLoading = ref(false)
 const addStepError = ref('')
 
 function onAddStepDialogOpen() {
-  addStepForm.value = { stepNumber: null, stepCode: '', name: '', isCommon: false }
+  addStepForm.value = { stepNumber: null, name: '', isCommon: false }
   addStepError.value = ''
   addStepDialog.value = true
 }
@@ -214,6 +214,7 @@ async function onAddAttrSubmit() {
       name: addAttrForm.value.name.trim(),
       isMultiSelect: addAttrForm.value.isMultiSelect,
       isRequired: addAttrForm.value.isRequired,
+      // v-model.number는 빈 필드를 0으로 변환하므로 0 이하는 null로 처리 → BO에서 자동 증가
       sortOrder: addAttrForm.value.sortOrder > 0 ? Number(addAttrForm.value.sortOrder) : null,
     })
     addAttrDialog.value = false
@@ -329,6 +330,7 @@ async function onAddOptionSubmit() {
       attrId: addOptionAttrId.value,
       name: addOptionForm.value.name.trim(),
       promptValue: addOptionForm.value.promptValue.trim(),
+      // v-model.number는 빈 필드를 0으로 변환하므로 0 이하는 null로 처리 → BO에서 자동 증가
       sortOrder: addOptionForm.value.sortOrder > 0 ? Number(addOptionForm.value.sortOrder) : null,
     })
     addOptionDialog.value = false
@@ -1089,6 +1091,7 @@ async function onDeleteOptionSubmit() {
             hint="미입력 시 자동으로 마지막 순서로 세팅됩니다."
             persistent-hint
             clearable
+            class="mb-3"
           />
           <v-alert
             v-if="addOptionError"
