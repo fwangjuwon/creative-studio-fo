@@ -493,11 +493,52 @@ const generatedImageUrls = ref([])
 const imageErrorMessage = ref('')
 const personSelectedAspectRatio = ref(null)       // 이미지 사이즈 선택값 (생성 전)
 const personGeneratedAspectRatio = ref('1:1')     // 이미지 생성 시점에 캡처한 종횡비
+const personReferenceImage = ref(null)            // File 객체 (주로 상품 이미지)
+const personReferenceImagePreview = ref('')      // ObjectURL (미리보기)
+const personReferenceImageError = ref('')
 
 const personImageAspectRatioValue = computed(() => {
   const [w, h] = personGeneratedAspectRatio.value.split(':').map(Number)
   return w / h
 })
+
+function onPersonReferenceImageChange(file) {
+  personReferenceImageError.value = ''
+  if (!file) {
+    personReferenceImage.value = null
+    personReferenceImagePreview.value = ''
+    return
+  }
+
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    personReferenceImageError.value = `이미지 파일만 첨부할 수 있습니다. (허용: ${ALLOWED_IMAGE_EXTENSIONS.join(', ')})`
+    personReferenceImage.value = null
+    personReferenceImagePreview.value = ''
+    personFileInputKey.value++
+    return
+  }
+
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+  if (!ALLOWED_IMAGE_EXTENSIONS.includes(ext)) {
+    personReferenceImageError.value = `허용되지 않는 확장자입니다. (허용: ${ALLOWED_IMAGE_EXTENSIONS.join(', ')})`
+    personReferenceImage.value = null
+    personReferenceImagePreview.value = ''
+    personFileInputKey.value++
+    return
+  }
+
+  const sizeMB = file.size / (1024 * 1024)
+  if (sizeMB > MAX_IMAGE_SIZE_MB) {
+    personReferenceImageError.value = `파일 크기가 너무 큽니다. (최대 ${MAX_IMAGE_SIZE_MB}MB, 현재 ${sizeMB.toFixed(1)}MB)`
+    personReferenceImage.value = null
+    personReferenceImagePreview.value = ''
+    personFileInputKey.value++
+    return
+  }
+
+  personReferenceImage.value = file
+  personReferenceImagePreview.value = URL.createObjectURL(file)
+}
 
 async function generatePersonImage() {
   if (!generatedPersonPrompt.value) return
@@ -507,11 +548,19 @@ async function generatePersonImage() {
   personGeneratedAspectRatio.value = personSelectedAspectRatio.value || '1:1'
 
   try {
-    const res = await api.post('/human-prompts/generate-image', {
-      historyId: personPromptHistoryId.value,
-      promptText: generatedPersonPrompt.value,
-      imageAspectRatio: personSelectedAspectRatio.value || null,
-    }, { timeout: 180000 })  // 3개 병렬 생성이므로 3분으로 설정
+    const formData = new FormData()
+    if (personPromptHistoryId.value != null) {
+      formData.append('historyId', personPromptHistoryId.value)
+    }
+    formData.append('promptText', generatedPersonPrompt.value)
+    if (personReferenceImage.value) {
+      formData.append('referenceImage', personReferenceImage.value)
+    }
+
+    const res = await api.post('/human-prompts/generate-image', formData, {
+      timeout: 180000,  // 3개 병렬 생성이므로 3분으로 설정
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
     generatedImageUrls.value = res.data.data?.imageUrls ?? []
   } catch (err) {
     if (err.code === 'ECONNABORTED') {
@@ -615,7 +664,8 @@ async function generatePersonPrompt(promptStyle = 'NANO_BANANA') {
 // ───────────────────────────────────────────────
 // 초기화
 // ───────────────────────────────────────────────
-const fileInputKey = ref(0)   // v-file-input 강제 리렌더링용
+const fileInputKey = ref(0)        // 상품 v-file-input 강제 리렌더링용
+const personFileInputKey = ref(0)  // 인물 v-file-input 강제 리렌더링용
 
 function resetProduct() {
   selectedLcs.value = null
@@ -659,6 +709,10 @@ function resetPerson() {
   personCopied.value = false
   personSelectedAspectRatio.value = null
   personGeneratedAspectRatio.value = '1:1'
+  personReferenceImage.value = null
+  personReferenceImagePreview.value = ''
+  personReferenceImageError.value = ''
+  personFileInputKey.value++
 }
 
 function onReset() {
@@ -1168,8 +1222,14 @@ async function copyPersonToClipboard() {
           <!-- ② 인원수 선택 후: 개별(Step 3,4,5) + 공통(Step 1,2) -->
           <template v-if="personCount">
 
+            <!-- 인물 설정 + 참조 이미지 (가로 배치) -->
+            <div class="d-flex align-stretch gap-6 mb-4">
+
+              <!-- 좌: 인물별 설정 / 인물 공통 설정 — 68% -->
+              <div style="flex: 0 0 68%; min-width: 0; display: flex; flex-direction: column;">
+
             <!-- 1~5명: 인물별 탭 -->
-            <v-card v-if="personCount <= 5" variant="outlined" class="mb-4">
+            <v-card v-if="personCount <= 5" variant="outlined" style="flex: 1 1 auto;">
               <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
                 <v-icon start>mdi-account-edit</v-icon>
                 인물별 설정
@@ -1216,7 +1276,7 @@ async function copyPersonToClipboard() {
             </v-card>
 
             <!-- 6명 이상: 피사체 공통 옵션 패널 1개 -->
-            <v-card v-else variant="outlined" class="mb-4">
+            <v-card v-else variant="outlined" style="flex: 1 1 auto;">
               <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
                 <v-icon start>mdi-account-group</v-icon>
                 인물 공통 설정
@@ -1252,6 +1312,50 @@ async function copyPersonToClipboard() {
                 </template>
               </v-card-text>
             </v-card>
+
+              </div>
+              <!-- /좌측 wrapper -->
+
+              <!-- 우: 참조 이미지 — 나머지 -->
+              <v-card variant="outlined" style="flex: 1 1 0; min-width: 0; margin-left: 8px;">
+                <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+                  <v-icon start>mdi-image-plus</v-icon>
+                  참조 이미지
+                  <span class="text-caption text-medium-emphasis ml-2">(선택 사항 · 주로 상품 이미지)</span>
+                </v-card-title>
+                <v-card-text>
+                  <v-file-input
+                    :key="personFileInputKey"
+                    label="이미지 첨부 (jpg, jpeg, png, webp · 최대 15MB)"
+                    accept=".jpg,.jpeg,.png,.webp"
+                    prepend-icon="mdi-image-plus"
+                    variant="outlined"
+                    density="comfortable"
+                    hide-details
+                    clearable
+                    @update:model-value="onPersonReferenceImageChange"
+                  />
+                  <v-alert
+                    v-if="personReferenceImageError"
+                    type="error"
+                    variant="tonal"
+                    density="compact"
+                    class="mt-2"
+                    closable
+                    @click:close="personReferenceImageError = ''"
+                  >{{ personReferenceImageError }}</v-alert>
+                  <div v-if="personReferenceImagePreview" class="mt-3 text-center">
+                    <img
+                      :src="personReferenceImagePreview"
+                      style="max-width: 100%; max-height: 240px; border-radius: 6px; border: 1px solid #e0e0e0;"
+                      alt="참조 이미지 미리보기"
+                    />
+                  </div>
+                </v-card-text>
+              </v-card>
+
+            </div>
+            <!-- /인물 설정 + 참조 이미지 가로 배치 -->
 
             <!-- 공통 옵션 카드 (조명/배경, 촬영기술) — 인물별 설정 아래 표시 -->
             <v-card class="mb-4" variant="outlined">
