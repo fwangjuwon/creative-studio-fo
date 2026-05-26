@@ -13,7 +13,9 @@ const refreshUsage = inject('refreshUsage', () => {})
 // immediate: true — 최초 마운트 + keep-alive 재활성화 + query 변경 모두 대응
 const activeTab = ref('product')
 watch(() => route.query.tab, (tab) => {
-  activeTab.value = tab === 'person' ? 'person' : 'product'
+  if (tab === 'person') activeTab.value = 'person'
+  else if (tab === 'fusion') activeTab.value = 'fusion'
+  else activeTab.value = 'product'
 }, { immediate: true })
 
 // ═══════════════════════════════════════════════
@@ -715,9 +717,93 @@ function resetPerson() {
   personFileInputKey.value++
 }
 
+// ═══════════════════════════════════════════════
+// TAB 3: 합성 이미지 생성
+// ═══════════════════════════════════════════════
+
+const fusionProductImage = ref(null)
+const fusionProductImagePreview = ref('')
+const fusionPersonImage = ref(null)
+const fusionPersonImagePreview = ref('')
+const fusionPose = ref('')        // 포즈/행동 설명
+const fusionInstruction = ref('') // 추가 지시사항
+const fusionAspectRatio = ref(null)
+const fusionGenerating = ref(false)
+const fusionGeneratedImageUrls = ref([])
+const fusionErrorMessage = ref('')
+const fusionGeneratedAspectRatio = ref('1:1')
+const fusionFileInputKey = ref(0)
+
+const fusionImageAspectRatioValue = computed(() => {
+  const [w, h] = fusionGeneratedAspectRatio.value.split(':').map(Number)
+  return w / h
+})
+
+const canGenerateFusion = computed(() =>
+  !!fusionProductImage.value && !!fusionPersonImage.value
+)
+
+function onFusionProductImageChange(file) {
+  if (!file) { fusionProductImage.value = null; fusionProductImagePreview.value = ''; return }
+  fusionProductImage.value = file
+  fusionProductImagePreview.value = URL.createObjectURL(file)
+}
+
+function onFusionPersonImageChange(file) {
+  if (!file) { fusionPersonImage.value = null; fusionPersonImagePreview.value = ''; return }
+  fusionPersonImage.value = file
+  fusionPersonImagePreview.value = URL.createObjectURL(file)
+}
+
+async function generateFusionImage() {
+  if (!canGenerateFusion.value) return
+  fusionGenerating.value = true
+  fusionErrorMessage.value = ''
+  fusionGeneratedImageUrls.value = []
+  fusionGeneratedAspectRatio.value = fusionAspectRatio.value || '1:1'
+
+  try {
+    const formData = new FormData()
+    formData.append('productImage', fusionProductImage.value)
+    formData.append('personImage', fusionPersonImage.value)
+    if (fusionPose.value) formData.append('pose', fusionPose.value)
+    if (fusionInstruction.value) formData.append('instruction', fusionInstruction.value)
+    if (fusionAspectRatio.value) formData.append('imageAspectRatio', fusionAspectRatio.value)
+
+    const res = await api.post('/prompts/fusion/generate-image', formData, {
+      timeout: 180000,
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    fusionGeneratedImageUrls.value = res.data.data?.imageUrls ?? []
+    refreshUsage()
+  } catch (err) {
+    if (err.code === 'ECONNABORTED') {
+      fusionErrorMessage.value = '이미지 생성 시간이 초과되었습니다. 다시 시도해 주세요.'
+    } else {
+      fusionErrorMessage.value = err.response?.data?.message || '이미지 생성 중 오류가 발생했습니다.'
+    }
+  } finally {
+    fusionGenerating.value = false
+  }
+}
+
+function resetFusion() {
+  fusionProductImage.value = null
+  fusionProductImagePreview.value = ''
+  fusionPersonImage.value = null
+  fusionPersonImagePreview.value = ''
+  fusionPose.value = ''
+  fusionInstruction.value = ''
+  fusionAspectRatio.value = null
+  fusionGeneratedImageUrls.value = []
+  fusionErrorMessage.value = ''
+  fusionFileInputKey.value++
+}
+
 function onReset() {
   if (activeTab.value === 'product') resetProduct()
-  else resetPerson()
+  else if (activeTab.value === 'person') resetPerson()
+  else resetFusion()
 }
 
 // ───────────────────────────────────────────────
@@ -820,6 +906,10 @@ async function copyPersonToClipboard() {
       <v-tab value="person">
         <v-icon start>mdi-account-outline</v-icon>
         인물 사진 프롬프트
+      </v-tab>
+      <v-tab value="fusion">
+        <v-icon start>mdi-image-multiple-outline</v-icon>
+        합성 이미지 생성
       </v-tab>
     </v-tabs>
 
@@ -1610,6 +1700,194 @@ async function copyPersonToClipboard() {
           </v-card>
 
         </template>
+      </v-tabs-window-item>
+
+      <!-- ════════════════════════════════════
+           TAB 3: 합성 이미지 생성
+           ════════════════════════════════════ -->
+      <v-tabs-window-item value="fusion">
+
+        <!-- ─── 로딩 오버레이 ─── -->
+        <v-overlay
+          :model-value="fusionGenerating"
+          class="d-flex align-center justify-center"
+          persistent
+          z-index="9999"
+          style="backdrop-filter: blur(4px);"
+        >
+          <div class="text-center">
+            <v-progress-circular indeterminate color="deep-purple" :size="96" :width="8" class="mb-6" />
+            <div class="text-white text-h6 font-weight-bold">합성 이미지 생성 중...</div>
+            <div class="text-white text-body-2 mt-2 opacity-80">두 이미지를 합성하고 있습니다. 잠시만 기다려주세요.</div>
+          </div>
+        </v-overlay>
+
+        <!-- ─── 참조 이미지 업로드 ─── -->
+        <v-row class="mb-4">
+          <v-col cols="12" md="6">
+            <v-card variant="outlined" height="100%">
+              <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+                <v-icon start>mdi-package-variant</v-icon>
+                상품 참조 이미지
+                <v-chip size="x-small" color="error" class="ml-2">필수</v-chip>
+              </v-card-title>
+              <v-card-text>
+                <v-file-input
+                  :key="fusionFileInputKey"
+                  label="상품 이미지 첨부 (jpg, jpeg, png, webp · 최대 15MB)"
+                  accept=".jpg,.jpeg,.png,.webp"
+                  prepend-icon="mdi-image-plus"
+                  variant="outlined"
+                  density="comfortable"
+                  hide-details
+                  clearable
+                  @update:model-value="onFusionProductImageChange"
+                />
+                <div v-if="fusionProductImagePreview" class="mt-3 text-center">
+                  <img :src="fusionProductImagePreview" style="max-width:100%; max-height:200px; border-radius:6px; border:1px solid #e0e0e0;" alt="상품 미리보기" />
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+
+          <v-col cols="12" md="6">
+            <v-card variant="outlined" height="100%">
+              <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+                <v-icon start>mdi-account</v-icon>
+                인물 참조 이미지
+                <v-chip size="x-small" color="error" class="ml-2">필수</v-chip>
+              </v-card-title>
+              <v-card-text>
+                <v-file-input
+                  :key="fusionFileInputKey + 1"
+                  label="인물 이미지 첨부 (jpg, jpeg, png, webp · 최대 15MB)"
+                  accept=".jpg,.jpeg,.png,.webp"
+                  prepend-icon="mdi-image-plus"
+                  variant="outlined"
+                  density="comfortable"
+                  hide-details
+                  clearable
+                  @update:model-value="onFusionPersonImageChange"
+                />
+                <div v-if="fusionPersonImagePreview" class="mt-3 text-center">
+                  <img :src="fusionPersonImagePreview" style="max-width:100%; max-height:200px; border-radius:6px; border:1px solid #e0e0e0;" alt="인물 미리보기" />
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+
+        <!-- ─── 포즈 가이드 + 지시사항 ─── -->
+        <v-card class="mb-4" variant="outlined">
+          <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+            <v-icon start>mdi-tune</v-icon>
+            합성 설정
+            <span class="text-caption text-medium-emphasis ml-2">(선택 사항)</span>
+          </v-card-title>
+          <v-card-text>
+
+            <!-- 포즈/행동 -->
+            <v-textarea
+              v-model="fusionPose"
+              label="포즈 / 행동"
+              placeholder="인물이 상품과 어떻게 상호작용하는지 입력하세요"
+              hint="예시) 상품을 양손으로 들고 있는 / 상품을 카메라 쪽으로 가리키는 / 상품을 마시고 있는"
+              persistent-hint
+              variant="outlined"
+              density="comfortable"
+              rows="2"
+              auto-grow
+              clearable
+              class="mb-5"
+            />
+
+            <!-- 추가 지시사항 -->
+            <v-textarea
+              v-model="fusionInstruction"
+              label="추가 지시사항"
+              placeholder="배경, 분위기, 표정 등 세부 요청사항을 입력하세요"
+              hint="예시) 밝은 스튜디오 배경, 환하게 웃는 표정 / 야외 자연광, 캐주얼한 분위기"
+              persistent-hint
+              variant="outlined"
+              density="comfortable"
+              rows="2"
+              auto-grow
+              clearable
+              class="mb-5"
+            />
+
+            <!-- 이미지 사이즈 -->
+            <template v-if="imageSizeGroup">
+              <div class="text-body-2 font-weight-medium mb-2">이미지 사이즈</div>
+              <div class="d-flex flex-wrap gap-2">
+                <v-chip
+                  v-for="tag in tagsByGroup[imageSizeGroup.id]"
+                  :key="tag.id"
+                  :color="fusionAspectRatio === (tag.tagValue ?? tag.name) ? 'primary' : 'default'"
+                  :variant="fusionAspectRatio === (tag.tagValue ?? tag.name) ? 'flat' : 'outlined'"
+                  class="cursor-pointer"
+                  @click="fusionAspectRatio = fusionAspectRatio === (tag.tagValue ?? tag.name) ? null : (tag.tagValue ?? tag.name)"
+                >
+                  {{ tag.name }}
+                </v-chip>
+              </div>
+            </template>
+
+          </v-card-text>
+        </v-card>
+
+        <!-- ─── 생성 버튼 ─── -->
+        <div class="d-flex justify-center mb-6">
+          <v-btn
+            color="deep-purple"
+            size="large"
+            :disabled="!canGenerateFusion || fusionGenerating"
+            :loading="fusionGenerating"
+            prepend-icon="mdi-image-sync"
+            @click="generateFusionImage"
+          >
+            합성 이미지 생성 (Nanobanana)
+          </v-btn>
+        </div>
+
+        <!-- ─── 에러 ─── -->
+        <v-alert
+          v-if="fusionErrorMessage"
+          type="error"
+          variant="tonal"
+          class="mb-4"
+          closable
+          @click:close="fusionErrorMessage = ''"
+        >
+          {{ fusionErrorMessage }}
+        </v-alert>
+
+        <!-- ─── 생성된 이미지 ─── -->
+        <v-card v-if="fusionGeneratedImageUrls.length" variant="outlined" class="mb-4">
+          <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+            <v-icon start color="deep-purple">mdi-image-check</v-icon>
+            생성된 합성 이미지 ({{ fusionGeneratedImageUrls.length }}개)
+          </v-card-title>
+          <v-card-text>
+            <v-row>
+              <v-col v-for="(url, idx) in fusionGeneratedImageUrls" :key="idx" cols="12" sm="4">
+                <v-card variant="flat" border rounded="lg">
+                  <v-img :src="url" :aspect-ratio="fusionImageAspectRatioValue" cover rounded="t-lg">
+                    <template #placeholder>
+                      <div class="d-flex align-center justify-center fill-height">
+                        <v-progress-circular indeterminate color="deep-purple" />
+                      </div>
+                    </template>
+                  </v-img>
+                  <v-card-actions class="justify-center pa-2">
+                    <v-btn size="small" color="deep-purple" variant="tonal" prepend-icon="mdi-download" @click="downloadImage(url)">저장</v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-col>
+            </v-row>
+          </v-card-text>
+        </v-card>
+
       </v-tabs-window-item>
 
     </v-tabs-window>
