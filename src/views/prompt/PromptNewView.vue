@@ -186,15 +186,80 @@ const goodsReferenceImage = ref(null)       // File 객체
 const goodsReferenceImagePreview = ref('')  // ObjectURL (미리보기)
 const goodsGeneratedAspectRatio = ref('1:1')  // 이미지 생성 시점에 캡처한 종횡비
 
-const goodsImageAspectRatioValue = computed(() => {
-  const [w, h] = goodsGeneratedAspectRatio.value.split(':').map(Number)
-  return w / h
-})
+const goodsImageAspectRatioValue = computed(() => parseAspectRatio(goodsGeneratedAspectRatio.value))
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp']
 const MAX_IMAGE_SIZE_MB = 15
 const goodsReferenceImageError = ref('')
+
+// ───────────────────────────────────────────────
+// 공통 유틸 함수
+// ───────────────────────────────────────────────
+
+/** 이미지 파일 검증 + ref 갱신 공통 헬퍼 */
+function validateAndSetImage(file, { fileRef, previewRef, errorRef, keyRef }) {
+  errorRef.value = ''
+  if (!file) { fileRef.value = null; previewRef.value = ''; return }
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    errorRef.value = `이미지 파일만 첨부할 수 있습니다. (허용: ${ALLOWED_IMAGE_EXTENSIONS.join(', ')})`
+    fileRef.value = null; previewRef.value = ''; keyRef.value++; return
+  }
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+  if (!ALLOWED_IMAGE_EXTENSIONS.includes(ext)) {
+    errorRef.value = `허용되지 않는 확장자입니다. (허용: ${ALLOWED_IMAGE_EXTENSIONS.join(', ')})`
+    fileRef.value = null; previewRef.value = ''; keyRef.value++; return
+  }
+  const sizeMB = file.size / (1024 * 1024)
+  if (sizeMB > MAX_IMAGE_SIZE_MB) {
+    errorRef.value = `파일 크기가 너무 큽니다. (최대 ${MAX_IMAGE_SIZE_MB}MB, 현재 ${sizeMB.toFixed(1)}MB)`
+    fileRef.value = null; previewRef.value = ''; keyRef.value++; return
+  }
+  fileRef.value = file
+  previewRef.value = URL.createObjectURL(file)
+}
+
+/** 종횡비 문자열("16:9" 등)을 숫자 비율로 변환 */
+function parseAspectRatio(ratioStr) {
+  const [w, h] = (ratioStr ?? '1:1').split(':').map(Number)
+  return w / h
+}
+
+/** 클립보드 복사 공통 헬퍼 */
+async function copyToClipboard(text, copiedRef) {
+  if (!text) return
+  try {
+    await navigator.clipboard.writeText(text)
+  } catch {
+    const el = document.createElement('textarea')
+    el.value = text
+    document.body.appendChild(el)
+    el.select()
+    document.execCommand('copy')
+    document.body.removeChild(el)
+  }
+  copiedRef.value = true
+  setTimeout(() => { copiedRef.value = false }, 2000)
+}
+
+/** 프롬프트 생성 에러 핸들링 공통 헬퍼 */
+function handlePromptError(err, errorRef) {
+  const code = err.response?.data?.code
+  if (code === 'P001') {
+    errorRef.value = '오늘 프롬프트 생성 한도를 초과했습니다. 내일 다시 시도해 주세요.'
+  } else {
+    errorRef.value = err.response?.data?.message || '프롬프트 생성 중 오류가 발생했습니다.'
+  }
+}
+
+/** 이미지 생성 에러 핸들링 공통 헬퍼 */
+function handleImageError(err, errorRef) {
+  if (err.code === 'ECONNABORTED') {
+    errorRef.value = '이미지 생성 시간이 초과되었습니다. 다시 시도해 주세요.'
+  } else {
+    errorRef.value = err.response?.data?.message || '이미지 생성 중 오류가 발생했습니다.'
+  }
+}
 
 async function onGeneratePrompt(promptStyle = 'NANO_BANANA') {
   if (!canGenerate.value) return
@@ -220,34 +285,14 @@ async function onGeneratePrompt(promptStyle = 'NANO_BANANA') {
     generatedGoodsImageUrls.value = []
     refreshUsage()  // 앱바 사용량 즉시 갱신
   } catch (err) {
-    const code = err.response?.data?.code
-    if (code === 'P001') {
-      errorMessage.value = '오늘 프롬프트 생성 한도를 초과했습니다. 내일 다시 시도해 주세요.'
-    } else {
-      errorMessage.value =
-        err.response?.data?.message || '프롬프트 생성 중 오류가 발생했습니다.'
-    }
+    handlePromptError(err, errorMessage)
   } finally {
     generatingStyle.value = null
   }
 }
 
-async function onCopyToClipboard() {
-  if (!generatedPrompt.value) return
-  try {
-    await navigator.clipboard.writeText(generatedPrompt.value)
-    copied.value = true
-    setTimeout(() => { copied.value = false }, 2000)
-  } catch {
-    const el = document.createElement('textarea')
-    el.value = generatedPrompt.value
-    document.body.appendChild(el)
-    el.select()
-    document.execCommand('copy')
-    document.body.removeChild(el)
-    copied.value = true
-    setTimeout(() => { copied.value = false }, 2000)
-  }
+function onCopyToClipboard() {
+  copyToClipboard(generatedPrompt.value, copied)
 }
 
 function onRegenerate() {
@@ -255,41 +300,10 @@ function onRegenerate() {
 }
 
 function onGoodsReferenceImageChange(file) {
-  goodsReferenceImageError.value = ''
-  if (!file) {
-    goodsReferenceImage.value = null
-    goodsReferenceImagePreview.value = ''
-    return
-  }
-
-  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-    goodsReferenceImageError.value = `이미지 파일만 첨부할 수 있습니다. (허용: ${ALLOWED_IMAGE_EXTENSIONS.join(', ')})`
-    goodsReferenceImage.value = null
-    goodsReferenceImagePreview.value = ''
-    fileInputKey.value++
-    return
-  }
-
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
-  if (!ALLOWED_IMAGE_EXTENSIONS.includes(ext)) {
-    goodsReferenceImageError.value = `허용되지 않는 확장자입니다. (허용: ${ALLOWED_IMAGE_EXTENSIONS.join(', ')})`
-    goodsReferenceImage.value = null
-    goodsReferenceImagePreview.value = ''
-    fileInputKey.value++
-    return
-  }
-
-  const sizeMB = file.size / (1024 * 1024)
-  if (sizeMB > MAX_IMAGE_SIZE_MB) {
-    goodsReferenceImageError.value = `파일 크기가 너무 큽니다. (최대 ${MAX_IMAGE_SIZE_MB}MB, 현재 ${sizeMB.toFixed(1)}MB)`
-    goodsReferenceImage.value = null
-    goodsReferenceImagePreview.value = ''
-    fileInputKey.value++
-    return
-  }
-
-  goodsReferenceImage.value = file
-  goodsReferenceImagePreview.value = URL.createObjectURL(file)
+  validateAndSetImage(file, {
+    fileRef: goodsReferenceImage, previewRef: goodsReferenceImagePreview,
+    errorRef: goodsReferenceImageError, keyRef: fileInputKey,
+  })
 }
 
 async function generateGoodsImage() {
@@ -318,12 +332,7 @@ async function generateGoodsImage() {
     })
     generatedGoodsImageUrls.value = res.data.data?.imageUrls ?? []
   } catch (err) {
-    if (err.code === 'ECONNABORTED') {
-      goodsImageErrorMessage.value = '이미지 생성 시간이 초과되었습니다. 다시 시도해 주세요.'
-    } else {
-      goodsImageErrorMessage.value =
-        err.response?.data?.message || '이미지 생성 중 오류가 발생했습니다.'
-    }
+    handleImageError(err, goodsImageErrorMessage)
   } finally {
     generatingGoodsImage.value = false
   }
@@ -499,47 +508,13 @@ const personReferenceImage = ref(null)            // File 객체 (주로 상품 
 const personReferenceImagePreview = ref('')      // ObjectURL (미리보기)
 const personReferenceImageError = ref('')
 
-const personImageAspectRatioValue = computed(() => {
-  const [w, h] = personGeneratedAspectRatio.value.split(':').map(Number)
-  return w / h
-})
+const personImageAspectRatioValue = computed(() => parseAspectRatio(personGeneratedAspectRatio.value))
 
 function onPersonReferenceImageChange(file) {
-  personReferenceImageError.value = ''
-  if (!file) {
-    personReferenceImage.value = null
-    personReferenceImagePreview.value = ''
-    return
-  }
-
-  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-    personReferenceImageError.value = `이미지 파일만 첨부할 수 있습니다. (허용: ${ALLOWED_IMAGE_EXTENSIONS.join(', ')})`
-    personReferenceImage.value = null
-    personReferenceImagePreview.value = ''
-    personFileInputKey.value++
-    return
-  }
-
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
-  if (!ALLOWED_IMAGE_EXTENSIONS.includes(ext)) {
-    personReferenceImageError.value = `허용되지 않는 확장자입니다. (허용: ${ALLOWED_IMAGE_EXTENSIONS.join(', ')})`
-    personReferenceImage.value = null
-    personReferenceImagePreview.value = ''
-    personFileInputKey.value++
-    return
-  }
-
-  const sizeMB = file.size / (1024 * 1024)
-  if (sizeMB > MAX_IMAGE_SIZE_MB) {
-    personReferenceImageError.value = `파일 크기가 너무 큽니다. (최대 ${MAX_IMAGE_SIZE_MB}MB, 현재 ${sizeMB.toFixed(1)}MB)`
-    personReferenceImage.value = null
-    personReferenceImagePreview.value = ''
-    personFileInputKey.value++
-    return
-  }
-
-  personReferenceImage.value = file
-  personReferenceImagePreview.value = URL.createObjectURL(file)
+  validateAndSetImage(file, {
+    fileRef: personReferenceImage, previewRef: personReferenceImagePreview,
+    errorRef: personReferenceImageError, keyRef: personFileInputKey,
+  })
 }
 
 async function generatePersonImage() {
@@ -565,12 +540,7 @@ async function generatePersonImage() {
     })
     generatedImageUrls.value = res.data.data?.imageUrls ?? []
   } catch (err) {
-    if (err.code === 'ECONNABORTED') {
-      imageErrorMessage.value = '이미지 생성 시간이 초과되었습니다. 다시 시도해 주세요.'
-    } else {
-      imageErrorMessage.value =
-        err.response?.data?.message || '이미지 생성 중 오류가 발생했습니다.'
-    }
+    handleImageError(err, imageErrorMessage)
   } finally {
     generatingImage.value = false
   }
@@ -651,13 +621,7 @@ async function generatePersonPrompt(promptStyle = 'NANO_BANANA') {
     generatedPersonStyle.value = promptStyle
     refreshUsage()
   } catch (err) {
-    const code = err.response?.data?.code
-    if (code === 'P001') {
-      personErrorMessage.value = '오늘 프롬프트 생성 한도를 초과했습니다. 내일 다시 시도해 주세요.'
-    } else {
-      personErrorMessage.value =
-        err.response?.data?.message || '프롬프트 생성 중 오류가 발생했습니다.'
-    }
+    handlePromptError(err, personErrorMessage)
   } finally {
     generatingPersonStyle.value = null
   }
@@ -733,26 +697,27 @@ const fusionGeneratedImageUrls = ref([])
 const fusionErrorMessage = ref('')
 const fusionGeneratedAspectRatio = ref('1:1')
 const fusionFileInputKey = ref(0)
+const fusionProductImageError = ref('')
+const fusionPersonImageError = ref('')
 
-const fusionImageAspectRatioValue = computed(() => {
-  const [w, h] = fusionGeneratedAspectRatio.value.split(':').map(Number)
-  return w / h
-})
+const fusionImageAspectRatioValue = computed(() => parseAspectRatio(fusionGeneratedAspectRatio.value))
 
 const canGenerateFusion = computed(() =>
   !!fusionProductImage.value && !!fusionPersonImage.value
 )
 
 function onFusionProductImageChange(file) {
-  if (!file) { fusionProductImage.value = null; fusionProductImagePreview.value = ''; return }
-  fusionProductImage.value = file
-  fusionProductImagePreview.value = URL.createObjectURL(file)
+  validateAndSetImage(file, {
+    fileRef: fusionProductImage, previewRef: fusionProductImagePreview,
+    errorRef: fusionProductImageError, keyRef: fusionFileInputKey,
+  })
 }
 
 function onFusionPersonImageChange(file) {
-  if (!file) { fusionPersonImage.value = null; fusionPersonImagePreview.value = ''; return }
-  fusionPersonImage.value = file
-  fusionPersonImagePreview.value = URL.createObjectURL(file)
+  validateAndSetImage(file, {
+    fileRef: fusionPersonImage, previewRef: fusionPersonImagePreview,
+    errorRef: fusionPersonImageError, keyRef: fusionFileInputKey,
+  })
 }
 
 async function generateFusionImage() {
@@ -777,11 +742,7 @@ async function generateFusionImage() {
     fusionGeneratedImageUrls.value = res.data.data?.imageUrls ?? []
     refreshUsage()
   } catch (err) {
-    if (err.code === 'ECONNABORTED') {
-      fusionErrorMessage.value = '이미지 생성 시간이 초과되었습니다. 다시 시도해 주세요.'
-    } else {
-      fusionErrorMessage.value = err.response?.data?.message || '이미지 생성 중 오류가 발생했습니다.'
-    }
+    handleImageError(err, fusionErrorMessage)
   } finally {
     fusionGenerating.value = false
   }
@@ -797,6 +758,8 @@ function resetFusion() {
   fusionAspectRatio.value = null
   fusionGeneratedImageUrls.value = []
   fusionErrorMessage.value = ''
+  fusionProductImageError.value = ''
+  fusionPersonImageError.value = ''
   fusionFileInputKey.value++
 }
 
@@ -827,22 +790,8 @@ async function downloadImage(url) {
   }
 }
 
-async function copyPersonToClipboard() {
-  if (!generatedPersonPrompt.value) return
-  try {
-    await navigator.clipboard.writeText(generatedPersonPrompt.value)
-    personCopied.value = true
-    setTimeout(() => { personCopied.value = false }, 2000)
-  } catch {
-    const el = document.createElement('textarea')
-    el.value = generatedPersonPrompt.value
-    document.body.appendChild(el)
-    el.select()
-    document.execCommand('copy')
-    document.body.removeChild(el)
-    personCopied.value = true
-    setTimeout(() => { personCopied.value = false }, 2000)
-  }
+function copyPersonToClipboard() {
+  copyToClipboard(generatedPersonPrompt.value, personCopied)
 }
 </script>
 
@@ -1743,6 +1692,15 @@ async function copyPersonToClipboard() {
                   clearable
                   @update:model-value="onFusionProductImageChange"
                 />
+                <v-alert
+                  v-if="fusionProductImageError"
+                  type="error"
+                  variant="tonal"
+                  density="compact"
+                  class="mt-2"
+                  closable
+                  @click:close="fusionProductImageError = ''"
+                >{{ fusionProductImageError }}</v-alert>
                 <div v-if="fusionProductImagePreview" class="mt-3 text-center">
                   <img :src="fusionProductImagePreview" style="max-width:100%; max-height:200px; border-radius:6px; border:1px solid #e0e0e0;" alt="상품 미리보기" />
                 </div>
@@ -1769,6 +1727,15 @@ async function copyPersonToClipboard() {
                   clearable
                   @update:model-value="onFusionPersonImageChange"
                 />
+                <v-alert
+                  v-if="fusionPersonImageError"
+                  type="error"
+                  variant="tonal"
+                  density="compact"
+                  class="mt-2"
+                  closable
+                  @click:close="fusionPersonImageError = ''"
+                >{{ fusionPersonImageError }}</v-alert>
                 <div v-if="fusionPersonImagePreview" class="mt-3 text-center">
                   <img :src="fusionPersonImagePreview" style="max-width:100%; max-height:200px; border-radius:6px; border:1px solid #e0e0e0;" alt="인물 미리보기" />
                 </div>
