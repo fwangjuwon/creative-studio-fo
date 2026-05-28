@@ -62,3 +62,6 @@ dist-ssr
 
 # Custom
 gemini_api_key
+
+# AI Agent context files (auto-generated)
+AGENTS.md

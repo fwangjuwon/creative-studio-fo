@@ -215,6 +215,7 @@ function validateAndSetImage(file, { fileRef, previewRef, errorRef, keyRef }) {
     errorRef.value = `파일 크기가 너무 큽니다. (최대 ${MAX_IMAGE_SIZE_MB}MB, 현재 ${sizeMB.toFixed(1)}MB)`
     fileRef.value = null; previewRef.value = ''; keyRef.value++; return
   }
+  if (previewRef.value) URL.revokeObjectURL(previewRef.value)
   fileRef.value = file
   previewRef.value = URL.createObjectURL(file)
 }
@@ -750,8 +751,10 @@ async function generateFusionImage() {
 
 function resetFusion() {
   fusionProductImage.value = null
+  if (fusionProductImagePreview.value) URL.revokeObjectURL(fusionProductImagePreview.value)
   fusionProductImagePreview.value = ''
   fusionPersonImage.value = null
+  if (fusionPersonImagePreview.value) URL.revokeObjectURL(fusionPersonImagePreview.value)
   fusionPersonImagePreview.value = ''
   fusionPose.value = ''
   fusionInstruction.value = ''
