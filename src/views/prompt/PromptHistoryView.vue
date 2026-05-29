@@ -37,6 +37,7 @@ const promptTypeOptions = [
   { title: '전체', value: null },
   { title: '상품', value: 'PRODUCT' },
   { title: '인물', value: 'PERSON' },
+  { title: '합성', value: 'FUSION' },
 ]
 
 const promptStyleOptions = [
@@ -46,9 +47,9 @@ const promptStyleOptions = [
 ]
 
 const isAdmin = computed(() => authStore.userRole === 'ADMIN')
-const promptTypeLabel = (type) => type === 'PERSON' ? '인물 사진' : '상품 사진'
-const promptTypeColor = (type) => type === 'PERSON' ? 'deep-purple' : 'primary'
-const promptTypeIcon  = (type) => type === 'PERSON' ? 'mdi-account-outline' : 'mdi-image-outline'
+const promptTypeLabel = (type) => type === 'PERSON' ? '인물 사진' : type === 'FUSION' ? '합성 사진' : '상품 사진'
+const promptTypeColor = (type) => type === 'PERSON' ? 'deep-purple' : type === 'FUSION' ? 'orange' : 'primary'
+const promptTypeIcon  = (type) => type === 'PERSON' ? 'mdi-account-outline' : type === 'FUSION' ? 'mdi-image-multiple-outline' : 'mdi-image-outline'
 
 const promptStyleLabel = (style) => style === 'MID_JOURNEY' ? 'MidJourney' : 'NanoBanana'
 const promptStyleColor = (style) => style === 'MID_JOURNEY' ? 'teal' : 'primary'
@@ -449,6 +450,18 @@ onMounted(() => fetchHistories(1))
                   <v-icon size="14" class="mr-1">mdi-note-text-outline</v-icon>추가 지시
                 </span>
                 <span class="text-body-2">{{ item.additionalNotes }}</span>
+              </div>
+            </template>
+
+            <!-- FUSION 전용: 이미지 비율 -->
+            <template v-else-if="item.promptType === 'FUSION'">
+              <div v-if="item.imageAspectRatio" class="d-flex flex-wrap gap-1 mb-3">
+                <span class="text-caption text-medium-emphasis mr-1 align-self-center">
+                  <v-icon size="14" class="mr-1">mdi-aspect-ratio</v-icon>비율
+                </span>
+                <v-chip size="x-small" color="secondary" variant="tonal">
+                  {{ item.imageAspectRatio }}
+                </v-chip>
               </div>
             </template>
 
