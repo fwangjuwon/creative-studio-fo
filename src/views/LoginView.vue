@@ -1,12 +1,15 @@
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+
+const SAVED_LOGIN_ID_KEY = 'savedLoginId'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
 const form = reactive({ loginId: '', password: '' })
+const rememberId = ref(false)
 const showPassword = ref(false)
 const loading = ref(false)
 const errorMsg = ref('')
@@ -16,6 +19,11 @@ async function onLogin() {
   loading.value = true
   try {
     await authStore.login(form)
+    if (rememberId.value) {
+      localStorage.setItem(SAVED_LOGIN_ID_KEY, form.loginId)
+    } else {
+      localStorage.removeItem(SAVED_LOGIN_ID_KEY)
+    }
     router.push({ name: 'home' })
   } catch (err) {
     errorMsg.value = err.response?.data?.message || '로그인에 실패했습니다. 다시 시도해주세요.'
@@ -23,6 +31,14 @@ async function onLogin() {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  const savedLoginId = localStorage.getItem(SAVED_LOGIN_ID_KEY)
+  if (savedLoginId) {
+    form.loginId = savedLoginId
+    rememberId.value = true
+  }
+})
 </script>
 
 <template>
@@ -56,6 +72,16 @@ async function onLogin() {
           class="mb-4"
           :disabled="loading"
           @click:append-inner="showPassword = !showPassword"
+        />
+
+        <v-checkbox
+          v-model="rememberId"
+          label="아이디 기억하기"
+          color="primary"
+          density="compact"
+          hide-details
+          class="mb-2"
+          :disabled="loading"
         />
 
         <v-alert
