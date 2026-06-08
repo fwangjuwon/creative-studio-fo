@@ -17,19 +17,31 @@ const errorMsg = ref('')
 async function onLogin() {
   errorMsg.value = ''
   loading.value = true
+
+  // 앞뒤 공백 제거 후 통일 (저장값/입력칸 모두 정리된 값 사용)
+  form.loginId = form.loginId.trim()
+
   try {
     await authStore.login(form)
+  } catch (err) {
+    errorMsg.value = err.response?.data?.message || '로그인에 실패했습니다. 다시 시도해주세요.'
+    return
+  } finally {
+    loading.value = false
+  }
+
+  // 로그인 성공 확정 — 아이디 저장 실패가 화면 흐름을 막지 않도록 분리
+  try {
     if (rememberId.value) {
       localStorage.setItem(SAVED_LOGIN_ID_KEY, form.loginId)
     } else {
       localStorage.removeItem(SAVED_LOGIN_ID_KEY)
     }
-    router.push({ name: 'home' })
-  } catch (err) {
-    errorMsg.value = err.response?.data?.message || '로그인에 실패했습니다. 다시 시도해주세요.'
-  } finally {
-    loading.value = false
+  } catch {
+    // 저장소 차단/용량 초과 등 — 부가기능이므로 조용히 무시
   }
+
+  router.push({ name: 'home' })
 }
 
 onMounted(() => {
