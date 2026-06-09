@@ -97,7 +97,7 @@ const loadingTags = ref(false)
 async function fetchTagGroups() {
   loadingTags.value = true
   try {
-    const res = await api.get('/tag-groups', { params: { type: 'PROMPT' } })
+    const res = await api.get('/tag-groups')
     tagGroups.value = res.data.data ?? []
     await Promise.all(
       tagGroups.value.map(async (group) => {
