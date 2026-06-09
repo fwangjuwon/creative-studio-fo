@@ -398,6 +398,24 @@ onMounted(() => fetchHistories(1))
                   {{ item.imageAspectRatio }}
                 </v-chip>
               </div>
+              <div v-if="item.purpose" class="mb-2">
+                <span class="text-caption text-medium-emphasis mr-1">
+                  <v-icon size="14" class="mr-1">mdi-target</v-icon>생성 목적
+                </span>
+                <span class="text-body-2">{{ item.purpose }}</span>
+              </div>
+              <div v-if="item.additionalNotes" class="mb-2">
+                <span class="text-caption text-medium-emphasis mr-1">
+                  <v-icon size="14" class="mr-1">mdi-note-text-outline</v-icon>추가 지시
+                </span>
+                <span class="text-body-2">{{ item.additionalNotes }}</span>
+              </div>
+              <div v-if="item.textContent" class="mb-3">
+                <span class="text-caption text-medium-emphasis mr-1">
+                  <v-icon size="14" class="mr-1">mdi-format-text</v-icon>텍스트 문구
+                </span>
+                <span class="text-body-2">{{ item.textContent }}</span>
+              </div>
             </template>
 
             <!-- PERSON 전용: 선택 옵션 + 목적 + 추가 지시 -->
@@ -445,11 +463,17 @@ onMounted(() => fetchHistories(1))
                 </span>
                 <span class="text-body-2">{{ item.purpose }}</span>
               </div>
-              <div v-if="item.additionalNotes" class="mb-3">
+              <div v-if="item.additionalNotes" class="mb-2">
                 <span class="text-caption text-medium-emphasis mr-1">
                   <v-icon size="14" class="mr-1">mdi-note-text-outline</v-icon>추가 지시
                 </span>
                 <span class="text-body-2">{{ item.additionalNotes }}</span>
+              </div>
+              <div v-if="item.textContent" class="mb-3">
+                <span class="text-caption text-medium-emphasis mr-1">
+                  <v-icon size="14" class="mr-1">mdi-format-text</v-icon>텍스트 문구
+                </span>
+                <span class="text-body-2">{{ item.textContent }}</span>
               </div>
             </template>
 

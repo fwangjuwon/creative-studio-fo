@@ -51,12 +51,10 @@ onMounted(async () => {
     loadingLcs.value = false
   }
   fetchTagGroups()
-  fetchTextOverlayGroups()
 })
 
 onActivated(() => {
   fetchTagGroups()
-  fetchTextOverlayGroups()
   // 페이지 재진입 시 단계 구조 최신화 (Admin 변경 사항 즉시 반영)
   stepsLoaded.value = false
   if (activeTab.value === 'person') fetchPersonSteps()
@@ -196,39 +194,9 @@ const MAX_IMAGE_SIZE_MB = 15
 const goodsReferenceImageError = ref('')
 
 // ───────────────────────────────────────────────
-// 텍스트 오버레이 그룹 (TEXT_OVERLAY — 상품/인물 공통)
-// 프롬프트 생성 단계에서 Gemini에 전달되어 이미지에 자연스럽게 텍스트를 녹여냄
-// ───────────────────────────────────────────────
-const textOverlayGroups = ref([])
-const textOverlayTagsByGroup = ref({})
-
-const textPositionGroup = computed(() => textOverlayGroups.value.find(g => g.name === '텍스트 위치') ?? null)
-const textSizeGroup    = computed(() => textOverlayGroups.value.find(g => g.name === '텍스트 크기') ?? null)
-const textStyleGroup   = computed(() => textOverlayGroups.value.find(g => g.name === '글자체 느낌') ?? null)
-
-async function fetchTextOverlayGroups() {
-  try {
-    const res = await api.get('/tag-groups', { params: { type: 'TEXT_OVERLAY' } })
-    textOverlayGroups.value = res.data.data ?? []
-    await Promise.all(
-      textOverlayGroups.value.map(async (group) => {
-        const r = await api.get('/tags', { params: { tagGroupId: group.id } })
-        textOverlayTagsByGroup.value[group.id] = r.data.data ?? []
-      })
-    )
-  } catch (err) {
-    console.error('텍스트 오버레이 옵션 로드 실패:', err)
-  }
-}
-
-// ───────────────────────────────────────────────
-// Tab 1 텍스트 오버레이 (선택 사항)
+// Tab 1 텍스트 오버레이 (선택 사항) — 문구만 입력, AI가 분위기에 맞게 자동 처리
 // ───────────────────────────────────────────────
 const goodsTextContent = ref('')
-const goodsTextPositionTagId = ref(null)
-const goodsTextSizeTagId = ref(null)
-const goodsTextStyleTagId = ref(null)
-const goodsTextColor = ref('')
 
 // ───────────────────────────────────────────────
 // 공통 유틸 함수
@@ -316,10 +284,6 @@ async function onGeneratePrompt(promptStyle = 'NANO_BANANA') {
       purpose: productPurpose.value || null,
       additionalNotes: productAdditionalNotes.value || null,
       textContent: goodsTextContent.value?.trim() || null,
-      textPositionTagId: goodsTextPositionTagId.value || null,
-      textSizeTagId: goodsTextSizeTagId.value || null,
-      textStyleTagId: goodsTextStyleTagId.value || null,
-      textColor: goodsTextColor.value?.trim() || null,
     }, { timeout: 60000 })
     goodsPromptHistoryId.value = res.data.data?.id ?? null
     generatedPrompt.value = res.data.data?.promptText ?? res.data.data ?? ''
@@ -552,13 +516,9 @@ const personReferenceImagePreview = ref('')      // ObjectURL (미리보기)
 const personReferenceImageError = ref('')
 
 // ───────────────────────────────────────────────
-// Tab 2 텍스트 오버레이 (선택 사항)
+// Tab 2 텍스트 오버레이 (선택 사항) — 문구만 입력, AI가 분위기에 맞게 자동 처리
 // ───────────────────────────────────────────────
 const personTextContent = ref('')
-const personTextPositionTagId = ref(null)
-const personTextSizeTagId = ref(null)
-const personTextStyleTagId = ref(null)
-const personTextColor = ref('')
 
 const personImageAspectRatioValue = computed(() => parseAspectRatio(personGeneratedAspectRatio.value))
 
@@ -668,10 +628,6 @@ async function generatePersonPrompt(promptStyle = 'NANO_BANANA') {
       promptStyle,
       imageAspectRatio: personSelectedAspectRatio.value || null,
       textContent: personTextContent.value?.trim() || null,
-      textPositionTagId: personTextPositionTagId.value || null,
-      textSizeTagId: personTextSizeTagId.value || null,
-      textStyleTagId: personTextStyleTagId.value || null,
-      textColor: personTextColor.value?.trim() || null,
     }, { timeout: 60000 })
     personPromptHistoryId.value = res.data.data?.id ?? null
     generatedPersonPrompt.value = res.data.data?.promptText ?? ''
@@ -712,10 +668,6 @@ function resetProduct() {
   goodsImageErrorMessage.value = ''
   copied.value = false
   goodsTextContent.value = ''
-  goodsTextPositionTagId.value = null
-  goodsTextSizeTagId.value = null
-  goodsTextStyleTagId.value = null
-  goodsTextColor.value = ''
   fileInputKey.value++   // file input 초기화
 }
 
@@ -741,10 +693,6 @@ function resetPerson() {
   personReferenceImagePreview.value = ''
   personReferenceImageError.value = ''
   personTextContent.value = ''
-  personTextPositionTagId.value = null
-  personTextSizeTagId.value = null
-  personTextStyleTagId.value = null
-  personTextColor.value = ''
   personFileInputKey.value++
 }
 
@@ -1132,59 +1080,10 @@ function copyPersonToClipboard() {
               variant="outlined"
               density="comfortable"
               clearable
-              hide-details
+              :maxlength="500"
+              counter="500"
               class="mb-3"
             />
-            <template v-if="goodsTextContent?.trim()">
-              <template v-if="textPositionGroup">
-                <div class="text-caption text-medium-emphasis mb-1">위치</div>
-                <div class="d-flex flex-wrap gap-1 mb-3">
-                  <v-btn
-                    v-for="tag in textOverlayTagsByGroup[textPositionGroup.id]"
-                    :key="tag.id"
-                    size="small"
-                    :variant="goodsTextPositionTagId === tag.id ? 'flat' : 'tonal'"
-                    :color="goodsTextPositionTagId === tag.id ? 'deep-purple' : 'default'"
-                    @click="goodsTextPositionTagId = goodsTextPositionTagId === tag.id ? null : tag.id"
-                  >{{ tag.name }}</v-btn>
-                </div>
-              </template>
-              <template v-if="textSizeGroup">
-                <div class="text-caption text-medium-emphasis mb-1">크기</div>
-                <div class="d-flex gap-1 mb-3">
-                  <v-btn
-                    v-for="tag in textOverlayTagsByGroup[textSizeGroup.id]"
-                    :key="tag.id"
-                    size="small"
-                    :variant="goodsTextSizeTagId === tag.id ? 'flat' : 'tonal'"
-                    :color="goodsTextSizeTagId === tag.id ? 'deep-purple' : 'default'"
-                    @click="goodsTextSizeTagId = goodsTextSizeTagId === tag.id ? null : tag.id"
-                  >{{ tag.name }}</v-btn>
-                </div>
-              </template>
-              <template v-if="textStyleGroup">
-                <div class="text-caption text-medium-emphasis mb-1">글자체 느낌</div>
-                <div class="d-flex flex-wrap gap-1 mb-3">
-                  <v-btn
-                    v-for="tag in textOverlayTagsByGroup[textStyleGroup.id]"
-                    :key="tag.id"
-                    size="small"
-                    :variant="goodsTextStyleTagId === tag.id ? 'flat' : 'tonal'"
-                    :color="goodsTextStyleTagId === tag.id ? 'deep-purple' : 'default'"
-                    @click="goodsTextStyleTagId = goodsTextStyleTagId === tag.id ? null : tag.id"
-                  >{{ tag.name }}</v-btn>
-                </div>
-              </template>
-              <v-text-field
-                v-model="goodsTextColor"
-                label="색상"
-                placeholder="예: 흰색, 검정, 골드"
-                variant="outlined"
-                density="comfortable"
-                clearable
-                hide-details
-              />
-            </template>
           </v-card-text>
         </v-card>
 
@@ -1644,59 +1543,10 @@ function copyPersonToClipboard() {
                 variant="outlined"
                 density="comfortable"
                 clearable
-                hide-details
+                :maxlength="500"
+                counter="500"
                 class="mb-3"
               />
-              <template v-if="personTextContent?.trim()">
-                <template v-if="textPositionGroup">
-                  <div class="text-caption text-medium-emphasis mb-1">위치</div>
-                  <div class="d-flex flex-wrap gap-1 mb-3">
-                    <v-btn
-                      v-for="tag in textOverlayTagsByGroup[textPositionGroup.id]"
-                      :key="tag.id"
-                      size="small"
-                      :variant="personTextPositionTagId === tag.id ? 'flat' : 'tonal'"
-                      :color="personTextPositionTagId === tag.id ? 'deep-purple' : 'default'"
-                      @click="personTextPositionTagId = personTextPositionTagId === tag.id ? null : tag.id"
-                    >{{ tag.name }}</v-btn>
-                  </div>
-                </template>
-                <template v-if="textSizeGroup">
-                  <div class="text-caption text-medium-emphasis mb-1">크기</div>
-                  <div class="d-flex gap-1 mb-3">
-                    <v-btn
-                      v-for="tag in textOverlayTagsByGroup[textSizeGroup.id]"
-                      :key="tag.id"
-                      size="small"
-                      :variant="personTextSizeTagId === tag.id ? 'flat' : 'tonal'"
-                      :color="personTextSizeTagId === tag.id ? 'deep-purple' : 'default'"
-                      @click="personTextSizeTagId = personTextSizeTagId === tag.id ? null : tag.id"
-                    >{{ tag.name }}</v-btn>
-                  </div>
-                </template>
-                <template v-if="textStyleGroup">
-                  <div class="text-caption text-medium-emphasis mb-1">글자체 느낌</div>
-                  <div class="d-flex flex-wrap gap-1 mb-3">
-                    <v-btn
-                      v-for="tag in textOverlayTagsByGroup[textStyleGroup.id]"
-                      :key="tag.id"
-                      size="small"
-                      :variant="personTextStyleTagId === tag.id ? 'flat' : 'tonal'"
-                      :color="personTextStyleTagId === tag.id ? 'deep-purple' : 'default'"
-                      @click="personTextStyleTagId = personTextStyleTagId === tag.id ? null : tag.id"
-                    >{{ tag.name }}</v-btn>
-                  </div>
-                </template>
-                <v-text-field
-                  v-model="personTextColor"
-                  label="색상"
-                  placeholder="예: 흰색, 검정, 골드"
-                  variant="outlined"
-                  density="comfortable"
-                  clearable
-                  hide-details
-                />
-              </template>
             </v-card-text>
           </v-card>
 
