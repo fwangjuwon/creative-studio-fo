@@ -25,10 +25,12 @@ const showReplyMsg    = ref(false)  // 엔송이 응답 말풍선
 const USER_MSGS = {
   product: '상품사진 프롬프트 생성하고 싶어요! 🛍️',
   person:  '인물사진 프롬프트 생성하고 싶어요! 👤',
+  fusion:  '합성 이미지 만들고 싶어요! 🖼️',
 }
 const REPLY_MSGS = {
   product: '좋아요! 상품사진 프롬프트 생성 화면으로 이동할게요 😊',
   person:  '좋아요! 인물사진 프롬프트 생성 화면으로 이동할게요 😊',
+  fusion:  '좋아요! 합성 이미지 생성 화면으로 이동할게요 😊',
 }
 
 onMounted(() => {
@@ -110,10 +112,10 @@ function onCardClick(tab) {
 
     <!-- 카드 선택 -->
     <Transition name="cards">
-      <v-row v-if="showCards" class="mt-4 mb-2">
-        <v-col cols="12" sm="6">
-          <v-card class="prompt-card" rounded="xl" elevation="2" @click="onCardClick('product')">
-            <v-card-text class="pa-10 text-center">
+      <v-row v-if="showCards" class="mt-4 mb-2" align="stretch">
+        <v-col cols="12" sm="4" class="d-flex">
+          <v-card class="prompt-card d-flex flex-column" style="width:100%" rounded="xl" elevation="2" @click="onCardClick('product')">
+            <v-card-text class="pa-10 text-center flex-grow-1">
               <v-icon size="60" color="secondary" class="mb-5">mdi-shopping-outline</v-icon>
               <div class="text-h6 font-weight-bold mb-2">상품 사진 프롬프트</div>
               <div class="text-body-2 text-medium-emphasis">
@@ -128,13 +130,30 @@ function onCardClick(tab) {
           </v-card>
         </v-col>
 
-        <v-col cols="12" sm="6">
-          <v-card class="prompt-card" rounded="xl" elevation="2" @click="onCardClick('person')">
-            <v-card-text class="pa-10 text-center">
+        <v-col cols="12" sm="4" class="d-flex">
+          <v-card class="prompt-card d-flex flex-column" style="width:100%" rounded="xl" elevation="2" @click="onCardClick('person')">
+            <v-card-text class="pa-10 text-center flex-grow-1">
               <v-icon size="60" color="secondary" class="mb-5">mdi-account-outline</v-icon>
               <div class="text-h6 font-weight-bold mb-2">인물 사진 프롬프트</div>
               <div class="text-body-2 text-medium-emphasis">
                 5단계 세부 선택으로<br>인물 이미지 AI 프롬프트 생성
+              </div>
+            </v-card-text>
+            <v-card-actions class="justify-center pb-6">
+              <v-chip color="secondary" variant="tonal" size="small" prepend-icon="mdi-arrow-right">
+                시작하기
+              </v-chip>
+            </v-card-actions>
+          </v-card>
+        </v-col>
+
+        <v-col cols="12" sm="4" class="d-flex">
+          <v-card class="prompt-card d-flex flex-column" style="width:100%" rounded="xl" elevation="2" @click="onCardClick('fusion')">
+            <v-card-text class="pa-10 text-center flex-grow-1">
+              <v-icon size="60" color="secondary" class="mb-5">mdi-image-multiple-outline</v-icon>
+              <div class="text-h6 font-weight-bold mb-2">합성 이미지 생성</div>
+              <div class="text-body-2 text-medium-emphasis">
+                상품 + 인물 사진을 합쳐<br>AI 합성 이미지 생성
               </div>
             </v-card-text>
             <v-card-actions class="justify-center pb-6">
@@ -188,7 +207,7 @@ function onCardClick(tab) {
 
 <style scoped>
 .chat-container {
-  max-width: 720px;
+  max-width: 960px;
 }
 
 /* 엔송이 아바타 */
