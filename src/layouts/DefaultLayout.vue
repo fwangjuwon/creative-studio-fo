@@ -35,6 +35,7 @@ const navItems = computed(() => {
   const items = [
     { title: '홈', icon: 'mdi-home', to: '/' },
     { title: '프롬프트 생성', icon: 'mdi-creation', to: '/prompt/new' },
+    { title: '합성 이미지 생성', icon: 'mdi-image-multiple-outline', to: '/prompt/new?tab=fusion' },
     { title: '프롬프트 이력', icon: 'mdi-history', to: '/prompt/history' },
   ]
 
