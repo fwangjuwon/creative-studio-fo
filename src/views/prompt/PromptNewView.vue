@@ -131,8 +131,18 @@ function isTagSelected(group, tagId) {
   return selectedTags.value[group.id] === tagId
 }
 
+const isFeaturedGroup = (g) => g?.isFeatured === 'Y'
+
 const imageSizeGroup = computed(() =>
-  tagGroups.value.find(g => g.name === '이미지 사이즈') ?? null
+  tagGroups.value.find(isFeaturedGroup) ?? null
+)
+
+const sortedTagGroups = computed(() =>
+  [...tagGroups.value].sort((a, b) => {
+    if (isFeaturedGroup(a) && !isFeaturedGroup(b)) return -1
+    if (!isFeaturedGroup(a) && isFeaturedGroup(b)) return 1
+    return 0
+  })
 )
 
 const selectedImageAspectRatio = computed(() => {
@@ -960,12 +970,14 @@ function copyPersonToClipboard() {
               </template>
               <template v-else>
                 <div
-                  v-for="group in tagGroups"
+                  v-for="(group, idx) in sortedTagGroups"
                   :key="group.id"
                   class="mb-4"
                 >
                   <div class="d-flex align-center mb-2">
-                    <span class="text-body-2 font-weight-medium">{{ group.name }}</span>
+                    <span :class="isFeaturedGroup(group) ? 'text-subtitle-1 font-weight-bold' : 'text-body-2 font-weight-medium'">
+                      {{ group.name }}
+                    </span>
                     <v-chip
                       size="x-small"
                       :color="group.isMultiSelect ? 'blue' : 'purple'"
@@ -979,15 +991,16 @@ function copyPersonToClipboard() {
                     <v-chip
                       v-for="tag in tagsByGroup[group.id]"
                       :key="tag.id"
+                      :size="isFeaturedGroup(group) ? 'large' : 'default'"
+                      :class="isFeaturedGroup(group) ? 'cursor-pointer font-weight-bold' : 'cursor-pointer'"
                       :color="isTagSelected(group, tag.id) ? 'primary' : 'default'"
                       :variant="isTagSelected(group, tag.id) ? 'flat' : 'outlined'"
-                      class="cursor-pointer"
                       @click="onTagToggle(group, tag.id)"
                     >
                       {{ tag.name }}
                     </v-chip>
                   </div>
-                  <v-divider v-if="tagGroups.indexOf(group) < tagGroups.length - 1" class="mt-4" />
+                  <v-divider v-if="idx < sortedTagGroups.length - 1" class="mt-4" />
                 </div>
               </template>
             </v-card-text>
@@ -1483,17 +1496,18 @@ function copyPersonToClipboard() {
               <span class="text-caption text-medium-emphasis ml-2">(선택 사항)</span>
             </v-card-title>
             <v-card-text>
-              <!-- 이미지 사이즈 선택 -->
+              <!-- 이미지 생성 목적 선택 -->
               <template v-if="imageSizeGroup">
                 <div class="mb-4">
-                  <div class="text-body-2 font-weight-medium mb-2">이미지 사이즈</div>
+                  <div class="text-subtitle-1 font-weight-bold mb-2">{{ imageSizeGroup.name }}</div>
                   <div class="d-flex flex-wrap gap-2">
                     <v-chip
                       v-for="tag in tagsByGroup[imageSizeGroup.id]"
                       :key="tag.id"
+                      size="large"
+                      class="cursor-pointer font-weight-bold"
                       :color="personSelectedAspectRatio === (tag.tagValue ?? tag.name) ? 'primary' : 'default'"
                       :variant="personSelectedAspectRatio === (tag.tagValue ?? tag.name) ? 'flat' : 'outlined'"
-                      class="cursor-pointer"
                       @click="personSelectedAspectRatio = personSelectedAspectRatio === (tag.tagValue ?? tag.name) ? null : (tag.tagValue ?? tag.name)"
                     >
                       {{ tag.name }}
@@ -1846,16 +1860,17 @@ function copyPersonToClipboard() {
               class="mb-5"
             />
 
-            <!-- 이미지 사이즈 -->
+            <!-- 이미지 생성 목적 -->
             <template v-if="imageSizeGroup">
-              <div class="text-body-2 font-weight-medium mb-2">이미지 사이즈</div>
+              <div class="text-subtitle-1 font-weight-bold mb-2">{{ imageSizeGroup.name }}</div>
               <div class="d-flex flex-wrap gap-2">
                 <v-chip
                   v-for="tag in tagsByGroup[imageSizeGroup.id]"
                   :key="tag.id"
+                  size="large"
+                  class="cursor-pointer font-weight-bold"
                   :color="fusionAspectRatio === (tag.tagValue ?? tag.name) ? 'primary' : 'default'"
                   :variant="fusionAspectRatio === (tag.tagValue ?? tag.name) ? 'flat' : 'outlined'"
-                  class="cursor-pointer"
                   @click="fusionAspectRatio = fusionAspectRatio === (tag.tagValue ?? tag.name) ? null : (tag.tagValue ?? tag.name)"
                 >
                   {{ tag.name }}
