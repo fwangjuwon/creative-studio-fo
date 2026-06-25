@@ -2,9 +2,19 @@
 import { ref, computed, onMounted, onActivated, watch, inject } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/api'
+import { usePromptRestoreStore } from '@/stores/promptRestore'
+
+// keep-alive(`<keep-alive include="PromptNewView">`) 매칭이 빌드 환경의 name 추론에
+// 의존하지 않도록 컴포넌트 name을 명시한다. 누락 시 캐시가 안 되어 onActivated가
+// 호출되지 않고, 히스토리 "이 설정으로 다시 만들기" 복원이 동작하지 않는다.
+defineOptions({ name: 'PromptNewView' })
 
 const route = useRoute()
 const refreshUsage = inject('refreshUsage', () => {})
+const restoreStore = usePromptRestoreStore()
+
+// 히스토리 복원 진행 중 플래그 — 드릴다운 watch가 자식 선택을 리셋하지 못하도록 차단
+const restoring = ref(false)
 
 // ───────────────────────────────────────────────
 // 탭 관리
@@ -43,24 +53,45 @@ async function fetchCategories(parentId = null) {
   return res.data.data ?? []
 }
 
+// keep-alive 캐시 여부와 무관하게 복원이 동작하도록 onMounted/onActivated 양쪽에서
+// 복원을 시도한다. (캐시 안 됨 → 매번 onMounted / 캐시 됨 → 재진입 시 onActivated)
+// applyRestore가 restoring=true를 동기적으로 세우므로, 경쟁 훅의 기본 로드는
+// restoring 가드로 복원값을 덮어쓰지 않는다.
 onMounted(async () => {
+  // 상품 탭 카테고리는 어떤 진입 경로든 필요하므로 항상 로드
   loadingLcs.value = true
   try {
     lcsItems.value = await fetchCategories()
   } finally {
     loadingLcs.value = false
   }
-  fetchTagGroups()
+  // 히스토리 복원 진입이면 복원 로직(applyRestore)이 나머지 데이터 로드를 직접 수행
+  if (restoreStore.payload) {
+    await applyRestore(restoreStore.consume())
+    return
+  }
+  // 복원이 진행 중(onActivated가 먼저 소비)이면 기본 로드는 건너뛴다
+  if (!restoring.value) fetchTagGroups()
 })
 
-onActivated(() => {
-  fetchTagGroups()
+onActivated(async () => {
   // 페이지 재진입 시 단계 구조 최신화 (Admin 변경 사항 즉시 반영)
   stepsLoaded.value = false
+
+  // 히스토리에서 "이 설정으로 다시 만들기"로 진입한 경우 폼 복원
+  if (restoreStore.payload) {
+    await applyRestore(restoreStore.consume())
+    return
+  }
+  // 복원이 진행 중(onMounted가 먼저 소비)이면 기본 로드는 건너뛴다
+  if (restoring.value) return
+
+  fetchTagGroups()
   if (activeTab.value === 'person') fetchPersonSteps()
 })
 
 watch(selectedLcs, async (val) => {
+  if (restoring.value) return  // 복원 중에는 자식 리셋/로드를 복원 로직이 직접 수행
   selectedMcs.value = null
   selectedScs.value = null
   mcsItems.value = []
@@ -75,6 +106,7 @@ watch(selectedLcs, async (val) => {
 })
 
 watch(selectedMcs, async (val) => {
+  if (restoring.value) return
   selectedScs.value = null
   scsItems.value = []
   if (!val) return
@@ -106,6 +138,10 @@ async function fetchTagGroups() {
         selectedTags.value[group.id] = group.isMultiSelect ? [] : null
       })
     )
+  } catch (err) {
+    // 태그 로드 실패가 히스토리 복원 등 상위 흐름 전체를 중단시키지 않도록 격리한다.
+    // (태그/비율 칩만 비어 있게 되고, 나머지 폼 복원·생성은 계속 진행)
+    console.error('태그 그룹 로드 실패:', err)
   } finally {
     loadingTags.value = false
   }
@@ -340,6 +376,169 @@ async function generateGoodsImage() {
 }
 
 
+// ───────────────────────────────────────────────
+// 히스토리 → 폼 복원
+// ───────────────────────────────────────────────
+
+/** 복원 진입점 — promptType에 따라 분기 */
+async function applyRestore(item) {
+  if (!item) return
+  // 동기적으로 즉시 세팅 — 첫 마운트 시 함께 실행되는 경쟁 훅(onMounted/onActivated)의
+  // 기본 데이터 로드가 복원값을 덮어쓰지 못하도록 차단한다.
+  restoring.value = true
+  try {
+    if (item.promptType === 'PRODUCT') {
+      await restoreProduct(item)
+    } else if (item.promptType === 'PERSON') {
+      await restorePerson(item)
+    } else if (item.promptType === 'FUSION') {
+      await restoreFusion(item)
+    } else {
+      fetchTagGroups()
+    }
+  } finally {
+    restoring.value = false
+  }
+}
+
+/**
+ * 합성 탭 복원: 원본 이미지·pose·instruction은 별도 저장 컬럼이 없어 복원 불가.
+ * 비율만 폼에 복원하고, 저장된 promptText는 참고용으로 표시한다.
+ */
+async function restoreFusion(item) {
+  await fetchTagGroups()  // 비율 칩이 imageSizeGroup/tagsByGroup 의존
+  fusionAspectRatio.value = item.imageAspectRatio ?? null
+  fusionRestoredPrompt.value = item.promptText ?? ''
+}
+
+/** 상품 탭 복원: 카테고리 드릴다운 → 태그 → 비율 → 목적/추가지시 */
+async function restoreProduct(item) {
+  // restoring 가드는 호출자(applyRestore)가 단독 관리한다. (여기서 중복 set 금지)
+  // 1) 카테고리 3단 순차 로드 + 선택
+  if (!lcsItems.value.length) {
+    loadingLcs.value = true
+    try { lcsItems.value = await fetchCategories() } finally { loadingLcs.value = false }
+  }
+  if (item.lcsId) {
+    selectedLcs.value = item.lcsId
+    loadingMcs.value = true
+    try { mcsItems.value = await fetchCategories(item.lcsId) } finally { loadingMcs.value = false }
+  }
+  if (item.mcsId) {
+    selectedMcs.value = item.mcsId
+    loadingScs.value = true
+    try { scsItems.value = await fetchCategories(item.mcsId) } finally { loadingScs.value = false }
+  }
+  const scsId = item.scsId ?? item.categoryId
+  if (scsId) selectedScs.value = scsId
+
+  // 2) 태그 그룹 로드 후 선택값 복원
+  await fetchTagGroups()
+  restoreProductTags(item)
+
+  // 3) 추가 옵션
+  productPurpose.value = item.purpose ?? ''
+  productAdditionalNotes.value = item.additionalNotes ?? ''
+}
+
+/**
+ * 저장된 tagIds(이미지 사이즈 제외) + imageAspectRatio를 selectedTags에 복원.
+ * tagId가 속한 그룹을 찾아 단일/복수 규칙에 맞게 채운다.
+ */
+function restoreProductTags(item) {
+  // 기본값으로 초기화
+  for (const group of tagGroups.value) {
+    selectedTags.value[group.id] = group.isMultiSelect ? [] : null
+  }
+  // 일반 태그 복원
+  for (const tagId of item.tagIds ?? []) {
+    for (const group of tagGroups.value) {
+      const tags = tagsByGroup.value[group.id] ?? []
+      if (tags.some(t => t.id === tagId)) {
+        if (group.isMultiSelect) {
+          if (!selectedTags.value[group.id].includes(tagId)) selectedTags.value[group.id].push(tagId)
+        } else {
+          selectedTags.value[group.id] = tagId
+        }
+        break
+      }
+    }
+  }
+  // 이미지 사이즈(비율)는 tagIds에서 제외되어 저장되므로 imageAspectRatio로 별도 복원
+  if (imageSizeGroup.value && item.imageAspectRatio) {
+    const tags = tagsByGroup.value[imageSizeGroup.value.id] ?? []
+    const match = tags.find(t => (t.tagValue ?? t.name) === item.imageAspectRatio)
+    if (match) selectedTags.value[imageSizeGroup.value.id] = match.id
+  }
+}
+
+/** 단계 구조에서 optionId → attrId 역매핑 생성 */
+function buildOptToAttr(steps) {
+  const map = {}
+  for (const step of steps) {
+    for (const attr of step.attrs ?? []) {
+      for (const opt of attr.options ?? []) {
+        map[opt.id] = attr.id
+      }
+    }
+  }
+  return map
+}
+
+/**
+ * 인물 탭 복원: 단계 구조를 로드해 optionId → attr 버킷으로 역매핑한 뒤
+ * 공통(personIndex -1) / 인물별(0~N) 선택 상태를 채운다.
+ */
+async function restorePerson(item) {
+  // restoring 가드는 호출자(applyRestore)가 단독 관리한다. (여기서 중복 set 금지)
+  await fetchPersonSteps()  // 단계 구조 (attr.options) 로드
+  await fetchTagGroups()    // 비율 칩이 imageSizeGroup/tagsByGroup 의존
+
+  const commonMap = buildOptToAttr(commonSteps.value)
+  const indivMap = buildOptToAttr(individualSteps.value)
+
+  const groups = item.personOptions ?? []
+  const personGroups = groups.filter(g => g.personIndex >= 0)
+  const commonGroup = groups.find(g => g.personIndex === -1)
+  const count = personGroups.length || 1
+
+  // 인물별 선택 복원
+  const arr = []
+  for (let i = 0; i < count; i++) arr.push(initPersonOptions())
+  for (const g of personGroups) {
+    const target = arr[g.personIndex]
+    if (!target) continue
+    for (const optId of g.optionIds ?? []) {
+      const attrId = indivMap[optId]
+      if (attrId == null) continue
+      if (!target[attrId]) target[attrId] = []
+      if (!target[attrId].includes(optId)) target[attrId].push(optId)
+    }
+  }
+  personCount.value = count            // watch는 restoring 가드로 재생성 생략
+  personSelectedOptions.value = arr
+
+  // 공통 선택 복원
+  const common = {}
+  for (const step of commonSteps.value) {
+    for (const attr of step.attrs ?? []) common[attr.id] = []
+  }
+  if (commonGroup) {
+    for (const optId of commonGroup.optionIds ?? []) {
+      const attrId = commonMap[optId]
+      if (attrId == null) continue
+      if (!common[attrId]) common[attrId] = []
+      if (!common[attrId].includes(optId)) common[attrId].push(optId)
+    }
+  }
+  commonSelectedOptions.value = common
+
+  // 비율 / 추가 지시
+  personSelectedAspectRatio.value = item.imageAspectRatio ?? null
+  personAdditionalNotes.value = item.additionalNotes ?? ''
+  personTabIdx.value = 0
+}
+
 // ═══════════════════════════════════════════════
 // TAB 2: 인물 사진 프롬프트
 // ═══════════════════════════════════════════════
@@ -381,10 +580,12 @@ async function fetchPersonSteps() {
     // 공통(isCommon=true) / 개별(isCommon=false) 분리
     commonSteps.value = personSteps.value.filter(s => s.isCommon)
     individualSteps.value = personSteps.value.filter(s => !s.isCommon)
-    // 공통 선택 상태 초기화
-    for (const step of commonSteps.value) {
-      for (const attr of step.attrs ?? []) {
-        commonSelectedOptions.value[attr.id] = []
+    // 공통 선택 상태 초기화 (복원 중에는 restorePerson이 값을 채우므로 리셋 생략)
+    if (!restoring.value) {
+      for (const step of commonSteps.value) {
+        for (const attr of step.attrs ?? []) {
+          commonSelectedOptions.value[attr.id] = []
+        }
       }
     }
     stepsLoaded.value = true
@@ -417,6 +618,7 @@ const personTabIdx = ref(0)    // 현재 활성 인물 탭 인덱스 (0-based)
 const personSelectedOptions = ref([])  // [{ attrId: [optionId, ...] }, ...]
 
 watch(personCount, (newCount) => {
+  if (restoring.value) return  // 복원 중에는 restorePerson이 배열을 직접 구성
   personTabIdx.value = 0
   if (!newCount) {
     personSelectedOptions.value = []
@@ -693,6 +895,7 @@ const fusionPersonImagePreview = ref('')
 const fusionPose = ref('')        // 포즈/행동 설명
 const fusionInstruction = ref('') // 추가 지시사항
 const fusionAspectRatio = ref(null)
+const fusionRestoredPrompt = ref('')  // 히스토리 복원 시 참고용으로 표시하는 저장된 promptText
 const fusionGenerating = ref(false)
 const fusionGeneratedImageUrls = ref([])
 const fusionErrorMessage = ref('')
@@ -759,6 +962,7 @@ function resetFusion() {
   fusionPose.value = ''
   fusionInstruction.value = ''
   fusionAspectRatio.value = null
+  fusionRestoredPrompt.value = ''
   fusionGeneratedImageUrls.value = []
   fusionErrorMessage.value = ''
   fusionProductImageError.value = ''
@@ -1803,6 +2007,28 @@ function copyPersonToClipboard() {
               </div>
             </template>
 
+          </v-card-text>
+        </v-card>
+
+        <!-- ─── 히스토리 복원: 참고용 프롬프트 ─── -->
+        <v-card v-if="fusionRestoredPrompt" class="mb-4" variant="outlined" color="deep-purple">
+          <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+            <v-icon start color="deep-purple">mdi-history</v-icon>
+            이전 생성에 사용된 프롬프트 (참고용)
+          </v-card-title>
+          <v-card-text>
+            <div class="text-caption text-medium-emphasis mb-2">
+              합성은 원본 이미지를 저장하지 않아 이미지·포즈·지시사항은 복원되지 않습니다. 아래 내용을 참고해 이미지를 다시 첨부한 뒤 생성해 주세요.
+            </div>
+            <v-textarea
+              :model-value="fusionRestoredPrompt"
+              readonly
+              variant="outlined"
+              density="compact"
+              rows="4"
+              auto-grow
+              hide-details
+            />
           </v-card-text>
         </v-card>
 
