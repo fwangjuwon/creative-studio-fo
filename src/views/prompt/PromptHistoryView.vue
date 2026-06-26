@@ -38,6 +38,7 @@ const promptTypeOptions = [
   { title: '상품', value: 'PRODUCT' },
   { title: '인물', value: 'PERSON' },
   { title: '합성', value: 'FUSION' },
+  { title: '텍스트 합성', value: 'TEXT_OVL' },
 ]
 
 const promptStyleOptions = [
@@ -47,9 +48,24 @@ const promptStyleOptions = [
 ]
 
 const isAdmin = computed(() => authStore.userRole === 'ADMIN')
-const promptTypeLabel = (type) => type === 'PERSON' ? '인물 사진' : type === 'FUSION' ? '합성 사진' : '상품 사진'
-const promptTypeColor = (type) => type === 'PERSON' ? 'deep-purple' : type === 'FUSION' ? 'orange' : 'primary'
-const promptTypeIcon  = (type) => type === 'PERSON' ? 'mdi-account-outline' : type === 'FUSION' ? 'mdi-image-multiple-outline' : 'mdi-image-outline'
+const promptTypeLabel = (type) => {
+  if (type === 'PERSON')   return '인물 사진'
+  if (type === 'FUSION')   return '합성 사진'
+  if (type === 'TEXT_OVL') return '텍스트 합성'
+  return '상품 사진'
+}
+const promptTypeColor = (type) => {
+  if (type === 'PERSON')   return 'deep-purple'
+  if (type === 'FUSION')   return 'orange'
+  if (type === 'TEXT_OVL') return 'teal'
+  return 'primary'
+}
+const promptTypeIcon = (type) => {
+  if (type === 'PERSON')   return 'mdi-account-outline'
+  if (type === 'FUSION')   return 'mdi-image-multiple-outline'
+  if (type === 'TEXT_OVL') return 'mdi-format-text'
+  return 'mdi-image-outline'
+}
 
 const promptStyleLabel = (style) => style === 'MID_JOURNEY' ? 'MidJourney' : 'NanoBanana'
 const promptStyleColor = (style) => style === 'MID_JOURNEY' ? 'teal' : 'primary'
@@ -416,6 +432,12 @@ onMounted(() => fetchHistories(1))
                 </span>
                 <span class="text-body-2">{{ item.textContent }}</span>
               </div>
+              <div v-if="item.disclaimerText" class="mb-3">
+                <span class="text-caption text-medium-emphasis mr-1">
+                  <v-icon size="14" class="mr-1">mdi-format-annotation-plus</v-icon>단서 문구
+                </span>
+                <span class="text-body-2">{{ item.disclaimerText }}</span>
+              </div>
             </template>
 
             <!-- PERSON 전용: 선택 옵션 + 목적 + 추가 지시 -->
@@ -475,9 +497,15 @@ onMounted(() => fetchHistories(1))
                 </span>
                 <span class="text-body-2">{{ item.textContent }}</span>
               </div>
+              <div v-if="item.disclaimerText" class="mb-3">
+                <span class="text-caption text-medium-emphasis mr-1">
+                  <v-icon size="14" class="mr-1">mdi-format-annotation-plus</v-icon>단서 문구
+                </span>
+                <span class="text-body-2">{{ item.disclaimerText }}</span>
+              </div>
             </template>
 
-            <!-- FUSION 전용: 이미지 비율 -->
+            <!-- FUSION 전용: 이미지 비율 + 텍스트 문구 -->
             <template v-else-if="item.promptType === 'FUSION'">
               <div v-if="item.imageAspectRatio" class="d-flex flex-wrap gap-1 mb-3">
                 <span class="text-caption text-medium-emphasis mr-1 align-self-center">
@@ -486,6 +514,34 @@ onMounted(() => fetchHistories(1))
                 <v-chip size="x-small" color="secondary" variant="tonal">
                   {{ item.imageAspectRatio }}
                 </v-chip>
+              </div>
+              <div v-if="item.textContent" class="mb-3">
+                <span class="text-caption text-medium-emphasis mr-1">
+                  <v-icon size="14" class="mr-1">mdi-format-text</v-icon>텍스트 문구
+                </span>
+                <span class="text-body-2">{{ item.textContent }}</span>
+              </div>
+              <div v-if="item.disclaimerText" class="mb-3">
+                <span class="text-caption text-medium-emphasis mr-1">
+                  <v-icon size="14" class="mr-1">mdi-format-annotation-plus</v-icon>단서 문구
+                </span>
+                <span class="text-body-2">{{ item.disclaimerText }}</span>
+              </div>
+            </template>
+
+            <!-- TEXT_OVL 전용: 텍스트 문구 + 단서 문구 -->
+            <template v-else-if="item.promptType === 'TEXT_OVL'">
+              <div v-if="item.textContent" class="mb-3">
+                <span class="text-caption text-medium-emphasis mr-1">
+                  <v-icon size="14" class="mr-1">mdi-format-text</v-icon>텍스트 문구
+                </span>
+                <span class="text-body-2">{{ item.textContent }}</span>
+              </div>
+              <div v-if="item.disclaimerText" class="mb-3">
+                <span class="text-caption text-medium-emphasis mr-1">
+                  <v-icon size="14" class="mr-1">mdi-format-annotation-plus</v-icon>단서 문구
+                </span>
+                <span class="text-body-2">{{ item.disclaimerText }}</span>
               </div>
             </template>
 
