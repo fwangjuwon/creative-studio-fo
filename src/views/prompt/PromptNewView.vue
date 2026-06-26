@@ -204,6 +204,13 @@ const MAX_IMAGE_SIZE_MB = 15
 const goodsReferenceImageError = ref('')
 
 // ───────────────────────────────────────────────
+// Tab 1 텍스트 오버레이 (선택 사항) — 문구만 입력, AI가 분위기에 맞게 자동 처리
+// ───────────────────────────────────────────────
+const goodsTextContent = ref('')
+const goodsDisclaimerStyle = ref(false)
+const goodsDisclaimerText  = ref('')
+
+// ───────────────────────────────────────────────
 // 공통 유틸 함수
 // ───────────────────────────────────────────────
 
@@ -288,6 +295,8 @@ async function onGeneratePrompt(promptStyle = 'NANO_BANANA') {
       promptStyle,
       purpose: productPurpose.value || null,
       additionalNotes: productAdditionalNotes.value || null,
+      textContent: goodsTextContent.value?.trim() || null,
+      disclaimerText: (goodsDisclaimerStyle.value && goodsDisclaimerText.value?.trim()) ? goodsDisclaimerText.value.trim() : null,
     }, { timeout: 60000 })
     goodsPromptHistoryId.value = res.data.data?.id ?? null
     generatedPrompt.value = res.data.data?.promptText ?? res.data.data ?? ''
@@ -519,6 +528,13 @@ const personReferenceImage = ref(null)            // File 객체 (주로 상품 
 const personReferenceImagePreview = ref('')      // ObjectURL (미리보기)
 const personReferenceImageError = ref('')
 
+// ───────────────────────────────────────────────
+// Tab 2 텍스트 오버레이 (선택 사항) — 문구만 입력, AI가 분위기에 맞게 자동 처리
+// ───────────────────────────────────────────────
+const personTextContent = ref('')
+const personDisclaimerStyle = ref(false)
+const personDisclaimerText  = ref('')
+
 const personImageAspectRatioValue = computed(() => parseAspectRatio(personGeneratedAspectRatio.value))
 
 function onPersonReferenceImageChange(file) {
@@ -626,6 +642,8 @@ async function generatePersonPrompt(promptStyle = 'NANO_BANANA') {
       additionalNotes: personAdditionalNotes.value || null,
       promptStyle,
       imageAspectRatio: personSelectedAspectRatio.value || null,
+      textContent: personTextContent.value?.trim() || null,
+      disclaimerText: (personDisclaimerStyle.value && personDisclaimerText.value?.trim()) ? personDisclaimerText.value.trim() : null,
     }, { timeout: 60000 })
     personPromptHistoryId.value = res.data.data?.id ?? null
     generatedPersonPrompt.value = res.data.data?.promptText ?? ''
@@ -665,6 +683,9 @@ function resetProduct() {
   errorMessage.value = ''
   goodsImageErrorMessage.value = ''
   copied.value = false
+  goodsTextContent.value = ''
+  goodsDisclaimerStyle.value = false
+  goodsDisclaimerText.value = ''
   fileInputKey.value++   // file input 초기화
 }
 
@@ -689,6 +710,9 @@ function resetPerson() {
   personReferenceImage.value = null
   personReferenceImagePreview.value = ''
   personReferenceImageError.value = ''
+  personTextContent.value = ''
+  personDisclaimerStyle.value = false
+  personDisclaimerText.value = ''
   personFileInputKey.value++
 }
 
@@ -696,6 +720,10 @@ function resetPerson() {
 // TAB 3: 합성 이미지 생성
 // ═══════════════════════════════════════════════
 
+// null: 모드 선택 전 / 'image-fusion': 인물+상품 합성 / 'text-overlay': 텍스트 합성
+const fusionMode = ref(null)
+
+// ─── 3-1. 인물+상품 합성 ───────────────────────
 const fusionProductImage = ref(null)
 const fusionProductImagePreview = ref('')
 const fusionPersonImage = ref(null)
@@ -710,6 +738,23 @@ const fusionGeneratedAspectRatio = ref('1:1')
 const fusionFileInputKey = ref(0)
 const fusionProductImageError = ref('')
 const fusionPersonImageError = ref('')
+const fusionTextContent = ref('')
+const fusionDisclaimerStyle = ref(false)
+const fusionDisclaimerText  = ref('')
+
+// ─── 3-2. 텍스트 합성 ─────────────────────────
+const overlayImage = ref(null)
+const overlayImagePreview = ref('')
+const overlayImageError = ref('')
+const overlayFileInputKey = ref(0)
+const overlayTextContent = ref('')
+const overlayDisclaimerStyle = ref(false)
+const overlayDisclaimerText = ref('')
+const overlayGenerating = ref(false)
+const overlayGeneratedImageUrls = ref([])
+const overlayErrorMessage = ref('')
+const overlayGeneratedAspectRatio = ref('1:1')
+const overlayImageAspectRatioValue = computed(() => parseAspectRatio(overlayGeneratedAspectRatio.value))
 
 const fusionImageAspectRatioValue = computed(() => parseAspectRatio(fusionGeneratedAspectRatio.value))
 
@@ -745,6 +790,8 @@ async function generateFusionImage() {
     if (fusionPose.value) formData.append('pose', fusionPose.value)
     if (fusionInstruction.value) formData.append('instruction', fusionInstruction.value)
     if (fusionAspectRatio.value) formData.append('imageAspectRatio', fusionAspectRatio.value)
+    if (fusionTextContent.value?.trim()) formData.append('textContent', fusionTextContent.value.trim())
+    if (fusionDisclaimerStyle.value && fusionDisclaimerText.value?.trim()) formData.append('disclaimerText', fusionDisclaimerText.value.trim())
 
     const res = await api.post('/prompts/fusion/generate-image', formData, {
       timeout: 180000,
@@ -759,7 +806,45 @@ async function generateFusionImage() {
   }
 }
 
+function onOverlayImageChange(file) {
+  validateAndSetImage(file, {
+    fileRef: overlayImage, previewRef: overlayImagePreview,
+    errorRef: overlayImageError, keyRef: overlayFileInputKey,
+  })
+}
+
+async function generateTextOverlayImage() {
+  const hasMain = !!overlayTextContent.value?.trim()
+  const hasDisclaimer = overlayDisclaimerStyle.value && !!overlayDisclaimerText.value?.trim()
+  if (!overlayImage.value || (!hasMain && !hasDisclaimer)) return
+  overlayGenerating.value = true
+  overlayErrorMessage.value = ''
+  overlayGeneratedImageUrls.value = []
+
+  try {
+    const formData = new FormData()
+    formData.append('image', overlayImage.value)
+    if (overlayTextContent.value?.trim()) formData.append('textContent', overlayTextContent.value.trim())
+    if (overlayDisclaimerStyle.value && overlayDisclaimerText.value.trim()) {
+      formData.append('disclaimerText', overlayDisclaimerText.value.trim())
+    }
+
+    const res = await api.post('/prompts/fusion/text-overlay', formData, {
+      timeout: 180000,
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    overlayGeneratedImageUrls.value = res.data.data?.imageUrls ?? []
+    refreshUsage()
+  } catch (err) {
+    handleImageError(err, overlayErrorMessage)
+  } finally {
+    overlayGenerating.value = false
+  }
+}
+
 function resetFusion() {
+  fusionMode.value = null
+  // 인물+상품 합성
   fusionProductImage.value = null
   if (fusionProductImagePreview.value) URL.revokeObjectURL(fusionProductImagePreview.value)
   fusionProductImagePreview.value = ''
@@ -773,7 +858,21 @@ function resetFusion() {
   fusionErrorMessage.value = ''
   fusionProductImageError.value = ''
   fusionPersonImageError.value = ''
+  fusionTextContent.value = ''
+  fusionDisclaimerStyle.value = false
+  fusionDisclaimerText.value = ''
   fusionFileInputKey.value++
+  // 텍스트 합성
+  overlayImage.value = null
+  if (overlayImagePreview.value) URL.revokeObjectURL(overlayImagePreview.value)
+  overlayImagePreview.value = ''
+  overlayImageError.value = ''
+  overlayTextContent.value = ''
+  overlayDisclaimerStyle.value = false
+  overlayDisclaimerText.value = ''
+  overlayGeneratedImageUrls.value = []
+  overlayErrorMessage.value = ''
+  overlayFileInputKey.value++
 }
 
 function onReset() {
@@ -812,7 +911,7 @@ function copyPersonToClipboard() {
   <div>
     <!-- ─── 풀스크린 로딩 오버레이 ─── -->
     <v-overlay
-      :model-value="generating || generatingGoodsImage || generatingPerson || generatingImage"
+      :model-value="generating || generatingGoodsImage || generatingPerson || generatingImage || overlayGenerating"
       class="d-flex align-center justify-center"
       persistent
       z-index="9999"
@@ -1064,6 +1163,55 @@ function copyPersonToClipboard() {
           </v-card-text>
         </v-card>
 
+        <!-- ─── 텍스트 문구 삽입 (선택 사항) ─── -->
+        <v-card class="mb-4" variant="outlined">
+          <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+            <v-icon start>mdi-format-text</v-icon>
+            텍스트 문구 삽입
+            <span class="text-caption text-medium-emphasis ml-2">(선택 사항)</span>
+          </v-card-title>
+          <v-card-text>
+            <v-textarea
+              v-model="goodsTextContent"
+              label="문구"
+              placeholder="예: 특가 30% 할인&#10;줄바꿈도 그대로 반영됩니다"
+              variant="outlined"
+              density="comfortable"
+              clearable
+              :maxlength="500"
+              counter="500"
+              rows="3"
+              auto-grow
+              class="mb-3"
+            />
+            <div class="d-flex flex-wrap gap-2 mb-2">
+              <v-btn
+                :variant="goodsDisclaimerStyle ? 'tonal' : 'outlined'"
+                :color="goodsDisclaimerStyle ? 'deep-purple' : undefined"
+                size="small"
+                rounded
+                :prepend-icon="goodsDisclaimerStyle ? 'mdi-check-circle-outline' : 'mdi-plus-circle-outline'"
+                @click="goodsDisclaimerStyle = !goodsDisclaimerStyle; if (!goodsDisclaimerStyle) goodsDisclaimerText = ''"
+              >단서 문구</v-btn>
+            </div>
+            <v-expand-transition>
+              <div v-if="goodsDisclaimerStyle" class="mt-2">
+                <v-textarea
+                  v-model="goodsDisclaimerText"
+                  label="단서 문구"
+                  placeholder="예: ※ 2023년 7월 출시 제품(HS-0110) 대비&#10;줄바꿈도 그대로 반영됩니다"
+                  variant="outlined"
+                  density="comfortable"
+                  :maxlength="300"
+                  counter="300"
+                  rows="2"
+                  auto-grow
+                />
+              </div>
+            </v-expand-transition>
+          </v-card-text>
+        </v-card>
+
         <!-- ─── 생성 버튼 (NanoBanana / MidJourney) ─── -->
         <div class="d-flex justify-center gap-3 mb-6 flex-wrap">
           <v-btn
@@ -1136,6 +1284,7 @@ function copyPersonToClipboard() {
               hide-details
               class="mb-3 font-mono"
             />
+
             <div class="d-flex gap-2 flex-wrap">
               <v-btn
                 :color="copied ? 'success' : 'primary'"
@@ -1505,6 +1654,55 @@ function copyPersonToClipboard() {
             </v-card-text>
           </v-card>
 
+          <!-- ─── 텍스트 문구 삽입 (선택 사항) ─── -->
+          <v-card class="mb-4" variant="outlined">
+            <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+              <v-icon start>mdi-format-text</v-icon>
+              텍스트 문구 삽입
+              <span class="text-caption text-medium-emphasis ml-2">(선택 사항)</span>
+            </v-card-title>
+            <v-card-text>
+              <v-textarea
+                v-model="personTextContent"
+                label="문구"
+                placeholder="예: 특가 30% 할인&#10;줄바꿈도 그대로 반영됩니다"
+                variant="outlined"
+                density="comfortable"
+                clearable
+                :maxlength="500"
+                counter="500"
+                rows="3"
+                auto-grow
+                class="mb-3"
+              />
+              <div class="d-flex flex-wrap gap-2 mb-2">
+                <v-btn
+                  :variant="personDisclaimerStyle ? 'tonal' : 'outlined'"
+                  :color="personDisclaimerStyle ? 'deep-purple' : undefined"
+                  size="small"
+                  rounded
+                  :prepend-icon="personDisclaimerStyle ? 'mdi-check-circle-outline' : 'mdi-plus-circle-outline'"
+                  @click="personDisclaimerStyle = !personDisclaimerStyle; if (!personDisclaimerStyle) personDisclaimerText = ''"
+                >단서 문구</v-btn>
+              </div>
+              <v-expand-transition>
+                <div v-if="personDisclaimerStyle" class="mt-2">
+                  <v-textarea
+                    v-model="personDisclaimerText"
+                    label="단서 문구"
+                    placeholder="예: ※ 2023년 7월 출시 제품(HS-0110) 대비&#10;줄바꿈도 그대로 반영됩니다"
+                    variant="outlined"
+                    density="comfortable"
+                    :maxlength="300"
+                    counter="300"
+                    rows="2"
+                    auto-grow
+                  />
+                </div>
+              </v-expand-transition>
+            </v-card-text>
+          </v-card>
+
           <!-- 생성 버튼 (NanoBanana / MidJourney) -->
           <div class="d-flex justify-center gap-3 mb-6 flex-wrap">
             <v-btn
@@ -1578,6 +1776,7 @@ function copyPersonToClipboard() {
                 hide-details
                 class="mb-3 font-mono"
               />
+
               <div class="d-flex gap-2 flex-wrap">
                 <v-btn
                   :color="personCopied ? 'success' : 'primary'"
@@ -1675,7 +1874,7 @@ function copyPersonToClipboard() {
 
         <!-- ─── 로딩 오버레이 ─── -->
         <v-overlay
-          :model-value="fusionGenerating"
+          :model-value="fusionGenerating || overlayGenerating"
           class="d-flex align-center justify-center"
           persistent
           z-index="9999"
@@ -1683,195 +1882,296 @@ function copyPersonToClipboard() {
         >
           <div class="text-center">
             <v-progress-circular indeterminate color="deep-purple" :size="96" :width="8" class="mb-6" />
-            <div class="text-white text-h6 font-weight-bold">합성 이미지 생성 중...</div>
-            <div class="text-white text-body-2 mt-2 opacity-80">두 이미지를 합성하고 있습니다. 잠시만 기다려주세요.</div>
+            <div class="text-white text-h6 font-weight-bold">
+              {{ overlayGenerating ? '텍스트 합성 중...' : '합성 이미지 생성 중...' }}
+            </div>
+            <div class="text-white text-body-2 mt-2 opacity-80">잠시만 기다려주세요.</div>
           </div>
         </v-overlay>
 
-        <!-- ─── 참조 이미지 업로드 ─── -->
-        <v-row class="mb-4">
-          <v-col cols="12" md="6">
-            <v-card variant="outlined" height="100%">
-              <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
-                <v-icon start>mdi-package-variant</v-icon>
-                상품 참조 이미지
-                <v-chip size="x-small" color="error" class="ml-2">필수</v-chip>
-              </v-card-title>
-              <v-card-text>
-                <v-file-input
-                  :key="fusionFileInputKey"
-                  label="상품 이미지 첨부 (jpg, jpeg, png, webp · 최대 15MB)"
-                  accept=".jpg,.jpeg,.png,.webp"
-                  prepend-icon="mdi-image-plus"
-                  variant="outlined"
-                  density="comfortable"
-                  hide-details
-                  clearable
-                  @update:model-value="onFusionProductImageChange"
-                />
-                <v-alert
-                  v-if="fusionProductImageError"
-                  type="error"
-                  variant="tonal"
-                  density="compact"
-                  class="mt-2"
-                  closable
-                  @click:close="fusionProductImageError = ''"
-                >{{ fusionProductImageError }}</v-alert>
-                <div v-if="fusionProductImagePreview" class="mt-3 text-center">
-                  <img :src="fusionProductImagePreview" style="max-width:100%; max-height:200px; border-radius:6px; border:1px solid #e0e0e0;" alt="상품 미리보기" />
+        <!-- ─── 모드 선택 (초기 화면) ─── -->
+        <template v-if="!fusionMode">
+          <p class="text-body-2 text-medium-emphasis mb-4">원하는 기능을 선택하세요.</p>
+          <v-row>
+            <v-col cols="12" sm="6">
+              <v-card
+                variant="outlined"
+                class="cursor-pointer pa-2"
+                hover
+                @click="fusionMode = 'image-fusion'"
+              >
+                <v-card-text class="text-center py-8">
+                  <v-icon size="48" color="deep-purple" class="mb-3">mdi-image-multiple-outline</v-icon>
+                  <div class="text-h6 font-weight-bold mb-2">인물 + 상품 합성</div>
+                  <div class="text-body-2 text-medium-emphasis">인물 이미지와 상품 이미지를 NanoBanana로 자연스럽게 합성합니다.</div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <v-col cols="12" sm="6">
+              <v-card
+                variant="outlined"
+                class="cursor-pointer pa-2"
+                hover
+                @click="fusionMode = 'text-overlay'"
+              >
+                <v-card-text class="text-center py-8">
+                  <v-icon size="48" color="teal" class="mb-3">mdi-format-text</v-icon>
+                  <div class="text-h6 font-weight-bold mb-2">이미지에 텍스트 합성</div>
+                  <div class="text-body-2 text-medium-emphasis">완성된 이미지에 문구를 추가합니다. 단서 문구, 광고 카피 등에 활용하세요.</div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+          </v-row>
+        </template>
+
+        <!-- ─── 3-1. 인물+상품 합성 ─── -->
+        <template v-else-if="fusionMode === 'image-fusion'">
+
+          <div class="d-flex align-center mb-4">
+            <v-btn variant="text" prepend-icon="mdi-arrow-left" size="small" @click="fusionMode = null">모드 선택으로</v-btn>
+          </div>
+
+          <v-row class="mb-4">
+            <v-col cols="12" md="6">
+              <v-card variant="outlined" height="100%">
+                <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+                  <v-icon start>mdi-package-variant</v-icon>
+                  상품 참조 이미지
+                  <v-chip size="x-small" color="error" class="ml-2">필수</v-chip>
+                </v-card-title>
+                <v-card-text>
+                  <v-file-input
+                    :key="fusionFileInputKey"
+                    label="상품 이미지 첨부 (jpg, jpeg, png, webp · 최대 15MB)"
+                    accept=".jpg,.jpeg,.png,.webp"
+                    prepend-icon="mdi-image-plus"
+                    variant="outlined"
+                    density="comfortable"
+                    hide-details
+                    clearable
+                    @update:model-value="onFusionProductImageChange"
+                  />
+                  <v-alert v-if="fusionProductImageError" type="error" variant="tonal" density="compact" class="mt-2" closable @click:close="fusionProductImageError = ''">{{ fusionProductImageError }}</v-alert>
+                  <div v-if="fusionProductImagePreview" class="mt-3 text-center">
+                    <img :src="fusionProductImagePreview" style="max-width:100%; max-height:200px; border-radius:6px; border:1px solid #e0e0e0;" alt="상품 미리보기" />
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-card variant="outlined" height="100%">
+                <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+                  <v-icon start>mdi-account</v-icon>
+                  인물 참조 이미지
+                  <v-chip size="x-small" color="error" class="ml-2">필수</v-chip>
+                </v-card-title>
+                <v-card-text>
+                  <v-file-input
+                    :key="fusionFileInputKey + 1"
+                    label="인물 이미지 첨부 (jpg, jpeg, png, webp · 최대 15MB)"
+                    accept=".jpg,.jpeg,.png,.webp"
+                    prepend-icon="mdi-image-plus"
+                    variant="outlined"
+                    density="comfortable"
+                    hide-details
+                    clearable
+                    @update:model-value="onFusionPersonImageChange"
+                  />
+                  <v-alert v-if="fusionPersonImageError" type="error" variant="tonal" density="compact" class="mt-2" closable @click:close="fusionPersonImageError = ''">{{ fusionPersonImageError }}</v-alert>
+                  <div v-if="fusionPersonImagePreview" class="mt-3 text-center">
+                    <img :src="fusionPersonImagePreview" style="max-width:100%; max-height:200px; border-radius:6px; border:1px solid #e0e0e0;" alt="인물 미리보기" />
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+          </v-row>
+
+          <v-card class="mb-4" variant="outlined">
+            <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+              <v-icon start>mdi-tune</v-icon>
+              합성 설정
+              <span class="text-caption text-medium-emphasis ml-2">(선택 사항)</span>
+            </v-card-title>
+            <v-card-text>
+              <v-textarea v-model="fusionPose" label="포즈 / 행동" placeholder="인물이 상품과 어떻게 상호작용하는지 입력하세요" hint="예시) 상품을 양손으로 들고 있는 / 상품을 카메라 쪽으로 가리키는" persistent-hint variant="outlined" density="comfortable" rows="2" auto-grow clearable class="mb-5" />
+              <v-textarea v-model="fusionInstruction" label="추가 지시사항" placeholder="배경, 분위기, 표정 등 세부 요청사항을 입력하세요" hint="예시) 밝은 스튜디오 배경, 환하게 웃는 표정 / 야외 자연광, 캐주얼한 분위기" persistent-hint variant="outlined" density="comfortable" rows="2" auto-grow clearable class="mb-5" />
+              <template v-if="imageSizeGroup">
+                <div class="text-subtitle-1 font-weight-bold mb-2">{{ imageSizeGroup.name }}</div>
+                <div class="d-flex flex-wrap gap-2">
+                  <v-chip v-for="tag in tagsByGroup[imageSizeGroup.id]" :key="tag.id" size="large" class="cursor-pointer font-weight-bold" :color="fusionAspectRatio === (tag.tagValue ?? tag.name) ? 'primary' : 'default'" :variant="fusionAspectRatio === (tag.tagValue ?? tag.name) ? 'flat' : 'outlined'" @click="fusionAspectRatio = fusionAspectRatio === (tag.tagValue ?? tag.name) ? null : (tag.tagValue ?? tag.name)">{{ tag.name }}</v-chip>
                 </div>
-              </v-card-text>
-            </v-card>
-          </v-col>
+              </template>
+            </v-card-text>
+          </v-card>
 
-          <v-col cols="12" md="6">
-            <v-card variant="outlined" height="100%">
-              <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
-                <v-icon start>mdi-account</v-icon>
-                인물 참조 이미지
-                <v-chip size="x-small" color="error" class="ml-2">필수</v-chip>
-              </v-card-title>
-              <v-card-text>
-                <v-file-input
-                  :key="fusionFileInputKey + 1"
-                  label="인물 이미지 첨부 (jpg, jpeg, png, webp · 최대 15MB)"
-                  accept=".jpg,.jpeg,.png,.webp"
-                  prepend-icon="mdi-image-plus"
-                  variant="outlined"
-                  density="comfortable"
-                  hide-details
-                  clearable
-                  @update:model-value="onFusionPersonImageChange"
-                />
-                <v-alert
-                  v-if="fusionPersonImageError"
-                  type="error"
-                  variant="tonal"
-                  density="compact"
-                  class="mt-2"
-                  closable
-                  @click:close="fusionPersonImageError = ''"
-                >{{ fusionPersonImageError }}</v-alert>
-                <div v-if="fusionPersonImagePreview" class="mt-3 text-center">
-                  <img :src="fusionPersonImagePreview" style="max-width:100%; max-height:200px; border-radius:6px; border:1px solid #e0e0e0;" alt="인물 미리보기" />
-                </div>
-              </v-card-text>
-            </v-card>
-          </v-col>
-        </v-row>
-
-        <!-- ─── 포즈 가이드 + 지시사항 ─── -->
-        <v-card class="mb-4" variant="outlined">
-          <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
-            <v-icon start>mdi-tune</v-icon>
-            합성 설정
-            <span class="text-caption text-medium-emphasis ml-2">(선택 사항)</span>
-          </v-card-title>
-          <v-card-text>
-
-            <!-- 포즈/행동 -->
-            <v-textarea
-              v-model="fusionPose"
-              label="포즈 / 행동"
-              placeholder="인물이 상품과 어떻게 상호작용하는지 입력하세요"
-              hint="예시) 상품을 양손으로 들고 있는 / 상품을 카메라 쪽으로 가리키는 / 상품을 마시고 있는"
-              persistent-hint
-              variant="outlined"
-              density="comfortable"
-              rows="2"
-              auto-grow
-              clearable
-              class="mb-5"
-            />
-
-            <!-- 추가 지시사항 -->
-            <v-textarea
-              v-model="fusionInstruction"
-              label="추가 지시사항"
-              placeholder="배경, 분위기, 표정 등 세부 요청사항을 입력하세요"
-              hint="예시) 밝은 스튜디오 배경, 환하게 웃는 표정 / 야외 자연광, 캐주얼한 분위기"
-              persistent-hint
-              variant="outlined"
-              density="comfortable"
-              rows="2"
-              auto-grow
-              clearable
-              class="mb-5"
-            />
-
-            <!-- 이미지 생성 목적 -->
-            <template v-if="imageSizeGroup">
-              <div class="text-subtitle-1 font-weight-bold mb-2">{{ imageSizeGroup.name }}</div>
-              <div class="d-flex flex-wrap gap-2">
-                <v-chip
-                  v-for="tag in tagsByGroup[imageSizeGroup.id]"
-                  :key="tag.id"
-                  size="large"
-                  class="cursor-pointer font-weight-bold"
-                  :color="fusionAspectRatio === (tag.tagValue ?? tag.name) ? 'primary' : 'default'"
-                  :variant="fusionAspectRatio === (tag.tagValue ?? tag.name) ? 'flat' : 'outlined'"
-                  @click="fusionAspectRatio = fusionAspectRatio === (tag.tagValue ?? tag.name) ? null : (tag.tagValue ?? tag.name)"
-                >
-                  {{ tag.name }}
-                </v-chip>
+          <v-card class="mb-4" variant="outlined">
+            <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+              <v-icon start>mdi-format-text</v-icon>
+              텍스트 문구 삽입
+              <span class="text-caption text-medium-emphasis ml-2">(선택 사항)</span>
+            </v-card-title>
+            <v-card-text>
+              <v-textarea v-model="fusionTextContent" label="문구" placeholder="예: 특가 30% 할인&#10;줄바꿈도 그대로 반영됩니다" variant="outlined" density="comfortable" clearable :maxlength="500" counter="500" rows="3" auto-grow class="mb-3" />
+              <div class="d-flex flex-wrap gap-2 mb-2">
+                <v-btn :variant="fusionDisclaimerStyle ? 'tonal' : 'outlined'" :color="fusionDisclaimerStyle ? 'deep-purple' : undefined" size="small" rounded :prepend-icon="fusionDisclaimerStyle ? 'mdi-check-circle-outline' : 'mdi-plus-circle-outline'" @click="fusionDisclaimerStyle = !fusionDisclaimerStyle; if (!fusionDisclaimerStyle) fusionDisclaimerText = ''">단서 문구</v-btn>
               </div>
-            </template>
+              <v-expand-transition>
+                <div v-if="fusionDisclaimerStyle" class="mt-2">
+                  <v-textarea v-model="fusionDisclaimerText" label="단서 문구" placeholder="예: ※ 2023년 7월 출시 제품(HS-0110) 대비&#10;줄바꿈도 그대로 반영됩니다" variant="outlined" density="comfortable" :maxlength="300" counter="300" rows="2" auto-grow />
+                </div>
+              </v-expand-transition>
+            </v-card-text>
+          </v-card>
 
-          </v-card-text>
-        </v-card>
+          <div class="d-flex justify-center mb-6">
+            <v-btn color="deep-purple" size="large" :disabled="!canGenerateFusion || fusionGenerating" :loading="fusionGenerating" prepend-icon="mdi-image-sync" @click="generateFusionImage">
+              합성 이미지 생성 (Nanobanana)
+            </v-btn>
+          </div>
 
-        <!-- ─── 생성 버튼 ─── -->
-        <div class="d-flex justify-center mb-6">
-          <v-btn
-            color="deep-purple"
-            size="large"
-            :disabled="!canGenerateFusion || fusionGenerating"
-            :loading="fusionGenerating"
-            prepend-icon="mdi-image-sync"
-            @click="generateFusionImage"
-          >
-            합성 이미지 생성 (Nanobanana)
-          </v-btn>
-        </div>
+          <v-alert v-if="fusionErrorMessage" type="error" variant="tonal" class="mb-4" closable @click:close="fusionErrorMessage = ''">{{ fusionErrorMessage }}</v-alert>
 
-        <!-- ─── 에러 ─── -->
-        <v-alert
-          v-if="fusionErrorMessage"
-          type="error"
-          variant="tonal"
-          class="mb-4"
-          closable
-          @click:close="fusionErrorMessage = ''"
-        >
-          {{ fusionErrorMessage }}
-        </v-alert>
+          <v-card v-if="fusionGeneratedImageUrls.length" variant="outlined" class="mb-4">
+            <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+              <v-icon start color="deep-purple">mdi-image-check</v-icon>
+              생성된 합성 이미지 ({{ fusionGeneratedImageUrls.length }}개)
+            </v-card-title>
+            <v-card-text>
+              <v-row>
+                <v-col v-for="(url, idx) in fusionGeneratedImageUrls" :key="idx" cols="12" sm="4">
+                  <v-card variant="flat" border rounded="lg">
+                    <v-img :src="url" :aspect-ratio="fusionImageAspectRatioValue" cover rounded="t-lg">
+                      <template #placeholder><div class="d-flex align-center justify-center fill-height"><v-progress-circular indeterminate color="deep-purple" /></div></template>
+                    </v-img>
+                    <v-card-actions class="justify-center pa-2">
+                      <v-btn size="small" color="deep-purple" variant="tonal" prepend-icon="mdi-download" @click="downloadImage(url)">저장</v-btn>
+                    </v-card-actions>
+                  </v-card>
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
 
-        <!-- ─── 생성된 이미지 ─── -->
-        <v-card v-if="fusionGeneratedImageUrls.length" variant="outlined" class="mb-4">
-          <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
-            <v-icon start color="deep-purple">mdi-image-check</v-icon>
-            생성된 합성 이미지 ({{ fusionGeneratedImageUrls.length }}개)
-          </v-card-title>
-          <v-card-text>
-            <v-row>
-              <v-col v-for="(url, idx) in fusionGeneratedImageUrls" :key="idx" cols="12" sm="4">
-                <v-card variant="flat" border rounded="lg">
-                  <v-img :src="url" :aspect-ratio="fusionImageAspectRatioValue" cover rounded="t-lg">
-                    <template #placeholder>
-                      <div class="d-flex align-center justify-center fill-height">
-                        <v-progress-circular indeterminate color="deep-purple" />
-                      </div>
-                    </template>
-                  </v-img>
-                  <v-card-actions class="justify-center pa-2">
-                    <v-btn size="small" color="deep-purple" variant="tonal" prepend-icon="mdi-download" @click="downloadImage(url)">저장</v-btn>
-                  </v-card-actions>
-                </v-card>
-              </v-col>
-            </v-row>
-          </v-card-text>
-        </v-card>
+        </template>
+
+        <!-- ─── 3-2. 텍스트 합성 ─── -->
+        <template v-else-if="fusionMode === 'text-overlay'">
+
+          <div class="d-flex align-center mb-4">
+            <v-btn variant="text" prepend-icon="mdi-arrow-left" size="small" @click="fusionMode = null">모드 선택으로</v-btn>
+          </div>
+
+          <v-card class="mb-4" variant="outlined">
+            <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+              <v-icon start>mdi-image-plus</v-icon>
+              원본 이미지
+              <v-chip size="x-small" color="error" class="ml-2">필수</v-chip>
+            </v-card-title>
+            <v-card-text>
+              <v-file-input
+                :key="overlayFileInputKey"
+                label="이미지 첨부 (jpg, jpeg, png, webp · 최대 15MB)"
+                accept=".jpg,.jpeg,.png,.webp"
+                prepend-icon="mdi-image-plus"
+                variant="outlined"
+                density="comfortable"
+                hide-details
+                clearable
+                @update:model-value="onOverlayImageChange"
+              />
+              <v-alert v-if="overlayImageError" type="error" variant="tonal" density="compact" class="mt-2" closable @click:close="overlayImageError = ''">{{ overlayImageError }}</v-alert>
+              <div v-if="overlayImagePreview" class="mt-3 text-center">
+                <img :src="overlayImagePreview" style="max-width:100%; max-height:300px; border-radius:6px; border:1px solid #e0e0e0;" alt="원본 이미지 미리보기" />
+              </div>
+            </v-card-text>
+          </v-card>
+
+          <v-card class="mb-4" variant="outlined">
+            <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+              <v-icon start>mdi-format-text</v-icon>
+              삽입할 텍스트
+              <v-chip size="x-small" color="error" class="ml-2">필수</v-chip>
+            </v-card-title>
+            <v-card-text>
+              <v-textarea
+                v-model="overlayTextContent"
+                label="문구"
+                placeholder="예: 2년만의 업그레이드 최신상&#10;압력 누름 만능팬&#10;줄바꿈도 그대로 반영됩니다"
+                variant="outlined"
+                density="comfortable"
+                clearable
+                :maxlength="500"
+                counter="500"
+                rows="3"
+                auto-grow
+                class="mb-3"
+              />
+              <div class="d-flex flex-wrap gap-2 mb-2">
+                <v-btn
+                  :variant="overlayDisclaimerStyle ? 'tonal' : 'outlined'"
+                  :color="overlayDisclaimerStyle ? 'teal' : undefined"
+                  size="small"
+                  rounded
+                  :prepend-icon="overlayDisclaimerStyle ? 'mdi-check-circle-outline' : 'mdi-plus-circle-outline'"
+                  @click="overlayDisclaimerStyle = !overlayDisclaimerStyle; if (!overlayDisclaimerStyle) overlayDisclaimerText = ''"
+                >단서 문구</v-btn>
+              </div>
+              <v-expand-transition>
+                <div v-if="overlayDisclaimerStyle" class="mt-2">
+                  <v-textarea
+                    v-model="overlayDisclaimerText"
+                    label="단서 문구"
+                    placeholder="예: ※ 2023년 7월 출시 제품(HS-0110) 대비&#10;줄바꿈도 그대로 반영됩니다"
+                    variant="outlined"
+                    density="comfortable"
+                    clearable
+                    :maxlength="300"
+                    counter="300"
+                    rows="2"
+                    auto-grow
+                  />
+                </div>
+              </v-expand-transition>
+            </v-card-text>
+          </v-card>
+
+          <div class="d-flex justify-center mb-6">
+            <v-btn
+              color="teal"
+              size="large"
+              :disabled="!overlayImage || (!overlayTextContent?.trim() && (!overlayDisclaimerStyle || !overlayDisclaimerText?.trim())) || (overlayDisclaimerStyle && !overlayDisclaimerText?.trim()) || overlayGenerating"
+              :loading="overlayGenerating"
+              prepend-icon="mdi-format-text"
+              @click="generateTextOverlayImage"
+            >
+              텍스트 합성 (Nanobanana)
+            </v-btn>
+          </div>
+
+          <v-alert v-if="overlayErrorMessage" type="error" variant="tonal" class="mb-4" closable @click:close="overlayErrorMessage = ''">{{ overlayErrorMessage }}</v-alert>
+
+          <v-card v-if="overlayGeneratedImageUrls.length" variant="outlined" class="mb-4">
+            <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+              <v-icon start color="teal">mdi-image-check</v-icon>
+              텍스트가 합성된 이미지 ({{ overlayGeneratedImageUrls.length }}개)
+            </v-card-title>
+            <v-card-text>
+              <v-row>
+                <v-col v-for="(url, idx) in overlayGeneratedImageUrls" :key="idx" cols="12" sm="4">
+                  <v-card variant="flat" border rounded="lg">
+                    <v-img :src="url" :aspect-ratio="overlayImageAspectRatioValue" cover rounded="t-lg">
+                      <template #placeholder><div class="d-flex align-center justify-center fill-height"><v-progress-circular indeterminate color="teal" /></div></template>
+                    </v-img>
+                    <v-card-actions class="justify-center pa-2">
+                      <v-btn size="small" color="teal" variant="tonal" prepend-icon="mdi-download" @click="downloadImage(url)">저장</v-btn>
+                    </v-card-actions>
+                  </v-card>
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
+
+        </template>
 
       </v-tabs-window-item>
 
