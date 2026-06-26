@@ -1,10 +1,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '@/api'
 import { useAuthStore } from '@/stores/auth'
+import { usePromptRestoreStore } from '@/stores/promptRestore'
 import { useEscClose } from '@/composables/useEscClose'
 
 const authStore = useAuthStore()
+const router = useRouter()
+const restoreStore = usePromptRestoreStore()
 
 const histories = ref([])
 const loading = ref(false)
@@ -160,6 +164,15 @@ function onReset() {
   filterDateTo.value      = ''
   dateRangeError.value    = ''
   fetchHistories(1)
+}
+
+// 히스토리 설정값을 생성 화면 폼으로 복원 ("이 설정으로 다시 만들기")
+function onRestore(item) {
+  restoreStore.set(item)
+  const tab = item.promptType === 'PERSON' ? 'person'
+    : item.promptType === 'FUSION' ? 'fusion'
+    : 'product'
+  router.push({ name: 'prompt-new', query: { tab, restore: '1' } })
 }
 
 function onDeleteClick(id) {
@@ -580,6 +593,17 @@ onMounted(() => fetchHistories(1))
                 @click="toggleImages(item.id)"
               >
                 {{ expandedImages[item.id] ? '이미지 닫기' : `이미지 확인 (${item.imageUrls.length}장)` }}
+              </v-btn>
+
+              <!-- 이 설정으로 다시 만들기 -->
+              <v-btn
+                color="deep-purple"
+                variant="tonal"
+                size="small"
+                prepend-icon="mdi-refresh-auto"
+                @click="onRestore(item)"
+              >
+                이 설정으로 다시 만들기
               </v-btn>
 
               <v-spacer />
