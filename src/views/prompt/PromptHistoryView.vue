@@ -136,6 +136,11 @@ async function fetchHistories(page = pageNum.value) {
     const res = await api.get('/prompts', { params })
     const paged = res.data.data
     histories.value       = paged?.items ?? []
+    // 이미지가 있는 항목은 기본 펼침 상태로 초기화
+    expandedImages.value = histories.value.reduce((acc, item) => {
+      if (item.imageUrls && item.imageUrls.length > 0) acc[item.id] = true
+      return acc
+    }, {})
     total.value           = paged?.total ?? 0
     pages.value           = paged?.pages ?? 0
     hasPreviousPage.value = paged?.hasPreviousPage ?? false

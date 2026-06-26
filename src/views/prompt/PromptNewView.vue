@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onActivated, watch, inject } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/api'
 import { usePromptRestoreStore } from '@/stores/promptRestore'
+import { useEscClose } from '@/composables/useEscClose'
 
 // keep-alive(`<keep-alive include="PromptNewView">`) 매칭이 빌드 환경의 name 추론에
 // 의존하지 않도록 컴포넌트 name을 명시한다. 누락 시 캐시가 안 되어 onActivated가
@@ -1109,6 +1110,18 @@ async function downloadImage(url) {
 function copyPersonToClipboard() {
   copyToClipboard(generatedPersonPrompt.value, personCopied)
 }
+
+// ───────────────────────────────────────────────
+// 생성 이미지 미리보기 (클릭 시 원본 크게 보기)
+// ───────────────────────────────────────────────
+const previewDialog = ref(false)
+const previewUrl = ref('')
+useEscClose(previewDialog)
+
+function openPreview(url) {
+  previewUrl.value = url
+  previewDialog.value = true
+}
 </script>
 
 <template>
@@ -1552,6 +1565,8 @@ function copyPersonToClipboard() {
                     :aspect-ratio="goodsImageAspectRatioValue"
                     cover
                     rounded="t-lg"
+                    class="cursor-zoom"
+                    @click="openPreview(url)"
                   >
                     <template #placeholder>
                       <div class="d-flex align-center justify-center fill-height">
@@ -2044,6 +2059,8 @@ function copyPersonToClipboard() {
                       :aspect-ratio="personImageAspectRatioValue"
                       cover
                       rounded="t-lg"
+                      class="cursor-zoom"
+                      @click="openPreview(url)"
                     >
                       <template #placeholder>
                         <div class="d-flex align-center justify-center fill-height">
@@ -2258,7 +2275,7 @@ function copyPersonToClipboard() {
               <v-row>
                 <v-col v-for="(url, idx) in fusionGeneratedImageUrls" :key="idx" cols="12" sm="4">
                   <v-card variant="flat" border rounded="lg">
-                    <v-img :src="url" :aspect-ratio="fusionImageAspectRatioValue" cover rounded="t-lg">
+                    <v-img :src="url" :aspect-ratio="fusionImageAspectRatioValue" cover rounded="t-lg" class="cursor-zoom" @click="openPreview(url)">
                       <template #placeholder><div class="d-flex align-center justify-center fill-height"><v-progress-circular indeterminate color="deep-purple" /></div></template>
                     </v-img>
                     <v-card-actions class="justify-center pa-2">
@@ -2377,7 +2394,7 @@ function copyPersonToClipboard() {
               <v-row>
                 <v-col v-for="(url, idx) in overlayGeneratedImageUrls" :key="idx" cols="12" sm="4">
                   <v-card variant="flat" border rounded="lg">
-                    <v-img :src="url" :aspect-ratio="overlayImageAspectRatioValue" cover rounded="t-lg">
+                    <v-img :src="url" :aspect-ratio="overlayImageAspectRatioValue" cover rounded="t-lg" class="cursor-zoom" @click="openPreview(url)">
                       <template #placeholder><div class="d-flex align-center justify-center fill-height"><v-progress-circular indeterminate color="teal" /></div></template>
                     </v-img>
                     <v-card-actions class="justify-center pa-2">
@@ -2394,6 +2411,40 @@ function copyPersonToClipboard() {
       </v-tabs-window-item>
 
     </v-tabs-window>
+
+    <!-- 생성 이미지 미리보기 다이얼로그 (클릭 시 원본 크게 보기) -->
+    <v-dialog v-model="previewDialog" max-width="90vw">
+      <v-card class="bg-transparent" elevation="0">
+        <div class="d-flex justify-end mb-2">
+          <v-btn icon variant="flat" color="white" size="small" @click="previewDialog = false">
+            <v-icon color="black">mdi-close</v-icon>
+          </v-btn>
+        </div>
+        <v-img
+          :src="previewUrl"
+          max-height="85vh"
+          contain
+          class="rounded"
+          @click="previewDialog = false"
+        >
+          <template #error>
+            <div class="d-flex align-center justify-center fill-height bg-grey-lighten-3" style="min-height:200px;">
+              <v-icon size="48" color="grey">mdi-image-broken-variant</v-icon>
+            </div>
+          </template>
+        </v-img>
+        <div class="d-flex justify-center mt-3">
+          <v-btn
+            variant="flat"
+            color="deep-purple"
+            prepend-icon="mdi-download"
+            @click="downloadImage(previewUrl)"
+          >
+            이미지 저장
+          </v-btn>
+        </div>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -2411,5 +2462,8 @@ function copyPersonToClipboard() {
 }
 .gap-3 {
   gap: 12px;
+}
+.cursor-zoom {
+  cursor: zoom-in;
 }
 </style>
