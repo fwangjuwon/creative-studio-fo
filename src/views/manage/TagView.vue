@@ -249,10 +249,10 @@ const deleteTagTarget = ref(null)
 const deleteTagLoading = ref(false)
 const deleteTagError = ref('')
 
-// 이미지 사이즈 그룹일 때만 실제값 필드 표시
+// isFeatured 그룹일 때만 실제값 필드 표시
 const selectedGroup = computed(() => tagGroups.value.find(g => g.id === selectedGroupId.value) ?? null)
 const showTagValue = computed(() =>
-  selectedGroup.value?.name?.trim().replace(/\s+/g, ' ') === '이미지 사이즈'
+  selectedGroup.value?.isFeatured === 'Y'
 )
 
 useEscClose(addGroupDialog, editGroupDialog, deleteGroupDialog, addTagDialog, editTagDialog, deleteTagDialog)
