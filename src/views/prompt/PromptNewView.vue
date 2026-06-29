@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onActivated, watch, inject } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/api'
 import { usePromptRestoreStore } from '@/stores/promptRestore'
+import { useEscClose } from '@/composables/useEscClose'
 
 // keep-alive(`<keep-alive include="PromptNewView">`) 매칭이 빌드 환경의 name 추론에
 // 의존하지 않도록 컴포넌트 name을 명시한다. 누락 시 캐시가 안 되어 onActivated가
@@ -425,14 +426,24 @@ async function applyRestore(item) {
  * 비율만 폼에 복원하고, 저장된 promptText는 참고용으로 표시한다.
  */
 async function restoreFusion(item) {
+  // 복원 전 화면 초기화 — 이전에 생성된 결과물이 남아있는 채로 복원되지 않도록
+  resetFusion()
+  fusionMode.value = 'image-fusion'  // FUSION 타입은 인물+상품 합성 모드로 복원
   await fetchTagGroups()  // 비율 칩이 imageSizeGroup/tagsByGroup 의존
   fusionAspectRatio.value = item.imageAspectRatio ?? null
   fusionRestoredPrompt.value = item.promptText ?? ''
+
+  // 텍스트 문구 / 단서 문구
+  fusionTextContent.value = item.textContent ?? ''
+  fusionDisclaimerStyle.value = !!item.disclaimerText
+  fusionDisclaimerText.value = item.disclaimerText ?? ''
 }
 
 /** 상품 탭 복원: 카테고리 드릴다운 → 태그 → 비율 → 목적/추가지시 */
 async function restoreProduct(item) {
   // restoring 가드는 호출자(applyRestore)가 단독 관리한다. (여기서 중복 set 금지)
+  // 복원 전 화면 초기화 — 이전에 생성된 결과물이 남아있는 채로 복원되지 않도록
+  resetProduct()
   // 1) 카테고리 3단 순차 로드 + 선택
   if (!lcsItems.value.length) {
     loadingLcs.value = true
@@ -458,6 +469,11 @@ async function restoreProduct(item) {
   // 3) 추가 옵션
   productPurpose.value = item.purpose ?? ''
   productAdditionalNotes.value = item.additionalNotes ?? ''
+
+  // 4) 텍스트 문구 / 단서 문구
+  goodsTextContent.value = item.textContent ?? ''
+  goodsDisclaimerStyle.value = !!item.disclaimerText
+  goodsDisclaimerText.value = item.disclaimerText ?? ''
 }
 
 /**
@@ -510,6 +526,8 @@ function buildOptToAttr(steps) {
  */
 async function restorePerson(item) {
   // restoring 가드는 호출자(applyRestore)가 단독 관리한다. (여기서 중복 set 금지)
+  // 복원 전 화면 초기화 — 이전에 생성된 결과물이 남아있는 채로 복원되지 않도록
+  resetPerson()
   await fetchPersonSteps()  // 단계 구조 (attr.options) 로드
   await fetchTagGroups()    // 비율 칩이 imageSizeGroup/tagsByGroup 의존
 
@@ -556,6 +574,11 @@ async function restorePerson(item) {
   personSelectedAspectRatio.value = item.imageAspectRatio ?? null
   personAdditionalNotes.value = item.additionalNotes ?? ''
   personTabIdx.value = 0
+
+  // 텍스트 문구 / 단서 문구
+  personTextContent.value = item.textContent ?? ''
+  personDisclaimerStyle.value = !!item.disclaimerText
+  personDisclaimerText.value = item.disclaimerText ?? ''
 }
 
 // ═══════════════════════════════════════════════
@@ -1109,6 +1132,18 @@ async function downloadImage(url) {
 function copyPersonToClipboard() {
   copyToClipboard(generatedPersonPrompt.value, personCopied)
 }
+
+// ───────────────────────────────────────────────
+// 생성 이미지 미리보기 (클릭 시 원본 크게 보기)
+// ───────────────────────────────────────────────
+const previewDialog = ref(false)
+const previewUrl = ref('')
+useEscClose(previewDialog)
+
+function openPreview(url) {
+  previewUrl.value = url
+  previewDialog.value = true
+}
 </script>
 
 <template>
@@ -1552,6 +1587,8 @@ function copyPersonToClipboard() {
                     :aspect-ratio="goodsImageAspectRatioValue"
                     cover
                     rounded="t-lg"
+                    class="cursor-zoom"
+                    @click="openPreview(url)"
                   >
                     <template #placeholder>
                       <div class="d-flex align-center justify-center fill-height">
@@ -2044,6 +2081,8 @@ function copyPersonToClipboard() {
                       :aspect-ratio="personImageAspectRatioValue"
                       cover
                       rounded="t-lg"
+                      class="cursor-zoom"
+                      @click="openPreview(url)"
                     >
                       <template #placeholder>
                         <div class="d-flex align-center justify-center fill-height">
@@ -2258,7 +2297,7 @@ function copyPersonToClipboard() {
               <v-row>
                 <v-col v-for="(url, idx) in fusionGeneratedImageUrls" :key="idx" cols="12" sm="4">
                   <v-card variant="flat" border rounded="lg">
-                    <v-img :src="url" :aspect-ratio="fusionImageAspectRatioValue" cover rounded="t-lg">
+                    <v-img :src="url" :aspect-ratio="fusionImageAspectRatioValue" cover rounded="t-lg" class="cursor-zoom" @click="openPreview(url)">
                       <template #placeholder><div class="d-flex align-center justify-center fill-height"><v-progress-circular indeterminate color="deep-purple" /></div></template>
                     </v-img>
                     <v-card-actions class="justify-center pa-2">
@@ -2377,7 +2416,7 @@ function copyPersonToClipboard() {
               <v-row>
                 <v-col v-for="(url, idx) in overlayGeneratedImageUrls" :key="idx" cols="12" sm="4">
                   <v-card variant="flat" border rounded="lg">
-                    <v-img :src="url" :aspect-ratio="overlayImageAspectRatioValue" cover rounded="t-lg">
+                    <v-img :src="url" :aspect-ratio="overlayImageAspectRatioValue" cover rounded="t-lg" class="cursor-zoom" @click="openPreview(url)">
                       <template #placeholder><div class="d-flex align-center justify-center fill-height"><v-progress-circular indeterminate color="teal" /></div></template>
                     </v-img>
                     <v-card-actions class="justify-center pa-2">
@@ -2394,6 +2433,40 @@ function copyPersonToClipboard() {
       </v-tabs-window-item>
 
     </v-tabs-window>
+
+    <!-- 생성 이미지 미리보기 다이얼로그 (클릭 시 원본 크게 보기) -->
+    <v-dialog v-model="previewDialog" max-width="90vw">
+      <v-card class="bg-transparent" elevation="0">
+        <div class="d-flex justify-end mb-2">
+          <v-btn icon variant="flat" color="white" size="small" @click="previewDialog = false">
+            <v-icon color="black">mdi-close</v-icon>
+          </v-btn>
+        </div>
+        <v-img
+          :src="previewUrl"
+          max-height="85vh"
+          contain
+          class="rounded"
+          @click="previewDialog = false"
+        >
+          <template #error>
+            <div class="d-flex align-center justify-center fill-height bg-grey-lighten-3" style="min-height:200px;">
+              <v-icon size="48" color="grey">mdi-image-broken-variant</v-icon>
+            </div>
+          </template>
+        </v-img>
+        <div class="d-flex justify-center mt-3">
+          <v-btn
+            variant="flat"
+            color="deep-purple"
+            prepend-icon="mdi-download"
+            @click="downloadImage(previewUrl)"
+          >
+            이미지 저장
+          </v-btn>
+        </div>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -2411,5 +2484,8 @@ function copyPersonToClipboard() {
 }
 .gap-3 {
   gap: 12px;
+}
+.cursor-zoom {
+  cursor: zoom-in;
 }
 </style>
