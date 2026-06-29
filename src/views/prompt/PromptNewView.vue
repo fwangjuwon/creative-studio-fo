@@ -1413,7 +1413,9 @@ function openPreview(url) {
             <v-textarea
               v-model="goodsTextContent"
               label="문구"
-              placeholder="예: 특가 30% 할인&#10;줄바꿈도 그대로 반영됩니다"
+              placeholder="예: 기능성 **냉감** 만능팬츠 4종&#10;**단어**로 감싸면 강조됩니다"
+              hint="문구는 방송 자막 스타일(굵은 외곽선·입체감)로 자동 표현됩니다. 더 강조하고 싶은 단어는 **단어**로 감싸보세요"
+              persistent-hint
               variant="outlined"
               density="comfortable"
               clearable
@@ -1906,7 +1908,9 @@ function openPreview(url) {
               <v-textarea
                 v-model="personTextContent"
                 label="문구"
-                placeholder="예: 특가 30% 할인&#10;줄바꿈도 그대로 반영됩니다"
+                placeholder="예: 기능성 **냉감** 만능팬츠 4종&#10;**단어**로 감싸면 강조됩니다"
+                hint="문구는 방송 자막 스타일(굵은 외곽선·입체감)로 자동 표현됩니다. 더 강조하고 싶은 단어는 **단어**로 감싸보세요"
+                persistent-hint
                 variant="outlined"
                 density="comfortable"
                 clearable
@@ -2254,7 +2258,7 @@ function openPreview(url) {
               <span class="text-caption text-medium-emphasis ml-2">(선택 사항)</span>
             </v-card-title>
             <v-card-text>
-              <v-textarea v-model="fusionTextContent" label="문구" placeholder="예: 특가 30% 할인&#10;줄바꿈도 그대로 반영됩니다" variant="outlined" density="comfortable" clearable :maxlength="500" counter="500" rows="3" auto-grow class="mb-3" />
+              <v-textarea v-model="fusionTextContent" label="문구" placeholder="예: 기능성 **냉감** 만능팬츠 4종&#10;**단어**로 감싸면 강조됩니다" hint="문구는 방송 자막 스타일(굵은 외곽선·입체감)로 자동 표현됩니다. 더 강조하고 싶은 단어는 **단어**로 감싸보세요" persistent-hint variant="outlined" density="comfortable" clearable :maxlength="500" counter="500" rows="3" auto-grow class="mb-3" />
               <div class="d-flex flex-wrap gap-2 mb-2">
                 <v-btn :variant="fusionDisclaimerStyle ? 'tonal' : 'outlined'" :color="fusionDisclaimerStyle ? 'deep-purple' : undefined" size="small" rounded :prepend-icon="fusionDisclaimerStyle ? 'mdi-check-circle-outline' : 'mdi-plus-circle-outline'" @click="fusionDisclaimerStyle = !fusionDisclaimerStyle; if (!fusionDisclaimerStyle) fusionDisclaimerText = ''">단서 문구</v-btn>
               </div>
@@ -2353,7 +2357,9 @@ function openPreview(url) {
               <v-textarea
                 v-model="overlayTextContent"
                 label="문구"
-                placeholder="예: 2년만의 업그레이드 최신상&#10;압력 누름 만능팬&#10;줄바꿈도 그대로 반영됩니다"
+                placeholder="예: 2년만의 업그레이드 **최신상**&#10;압력 누름 만능팬"
+                hint="문구는 방송 자막 스타일(굵은 외곽선·입체감)로 자동 표현됩니다. 더 강조하고 싶은 단어는 **단어**로 감싸보세요"
+                persistent-hint
                 variant="outlined"
                 density="comfortable"
                 clearable
