@@ -426,14 +426,24 @@ async function applyRestore(item) {
  * 비율만 폼에 복원하고, 저장된 promptText는 참고용으로 표시한다.
  */
 async function restoreFusion(item) {
+  // 복원 전 화면 초기화 — 이전에 생성된 결과물이 남아있는 채로 복원되지 않도록
+  resetFusion()
+  fusionMode.value = 'image-fusion'  // FUSION 타입은 인물+상품 합성 모드로 복원
   await fetchTagGroups()  // 비율 칩이 imageSizeGroup/tagsByGroup 의존
   fusionAspectRatio.value = item.imageAspectRatio ?? null
   fusionRestoredPrompt.value = item.promptText ?? ''
+
+  // 텍스트 문구 / 단서 문구
+  fusionTextContent.value = item.textContent ?? ''
+  fusionDisclaimerStyle.value = !!item.disclaimerText
+  fusionDisclaimerText.value = item.disclaimerText ?? ''
 }
 
 /** 상품 탭 복원: 카테고리 드릴다운 → 태그 → 비율 → 목적/추가지시 */
 async function restoreProduct(item) {
   // restoring 가드는 호출자(applyRestore)가 단독 관리한다. (여기서 중복 set 금지)
+  // 복원 전 화면 초기화 — 이전에 생성된 결과물이 남아있는 채로 복원되지 않도록
+  resetProduct()
   // 1) 카테고리 3단 순차 로드 + 선택
   if (!lcsItems.value.length) {
     loadingLcs.value = true
@@ -459,6 +469,11 @@ async function restoreProduct(item) {
   // 3) 추가 옵션
   productPurpose.value = item.purpose ?? ''
   productAdditionalNotes.value = item.additionalNotes ?? ''
+
+  // 4) 텍스트 문구 / 단서 문구
+  goodsTextContent.value = item.textContent ?? ''
+  goodsDisclaimerStyle.value = !!item.disclaimerText
+  goodsDisclaimerText.value = item.disclaimerText ?? ''
 }
 
 /**
@@ -511,6 +526,8 @@ function buildOptToAttr(steps) {
  */
 async function restorePerson(item) {
   // restoring 가드는 호출자(applyRestore)가 단독 관리한다. (여기서 중복 set 금지)
+  // 복원 전 화면 초기화 — 이전에 생성된 결과물이 남아있는 채로 복원되지 않도록
+  resetPerson()
   await fetchPersonSteps()  // 단계 구조 (attr.options) 로드
   await fetchTagGroups()    // 비율 칩이 imageSizeGroup/tagsByGroup 의존
 
@@ -557,6 +574,11 @@ async function restorePerson(item) {
   personSelectedAspectRatio.value = item.imageAspectRatio ?? null
   personAdditionalNotes.value = item.additionalNotes ?? ''
   personTabIdx.value = 0
+
+  // 텍스트 문구 / 단서 문구
+  personTextContent.value = item.textContent ?? ''
+  personDisclaimerStyle.value = !!item.disclaimerText
+  personDisclaimerText.value = item.disclaimerText ?? ''
 }
 
 // ═══════════════════════════════════════════════
