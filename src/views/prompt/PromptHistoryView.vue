@@ -18,7 +18,12 @@ const deleteDialog = ref(false)
 const deleteTargetId = ref(null)
 const deleteLoading = ref(false)
 
-useEscClose(deleteDialog)
+// 이미지 미리보기 다이얼로그 (이력 이미지 클릭 시 원본 크게 보기)
+const previewDialog = ref(false)
+const previewUrl = ref('')
+
+// 미리보기 다이얼로그가 삭제 다이얼로그 위에 뜨므로 ESC 우선순위를 앞에 둔다
+useEscClose(previewDialog, deleteDialog)
 
 const pageNum         = ref(1)
 const pageSize        = ref(10)
@@ -86,6 +91,11 @@ function formatDate(dateStr) {
 
 function toggleImages(id) {
   expandedImages.value[id] = !expandedImages.value[id]
+}
+
+function openPreview(url) {
+  previewUrl.value = url
+  previewDialog.value = true
 }
 
 async function copyToClipboard(text, id) {
@@ -642,7 +652,8 @@ onMounted(() => fetchHistories(1))
                         :src="url"
                         max-height="300"
                         contain
-                        class="rounded"
+                        class="rounded cursor-zoom"
+                        @click="openPreview(url)"
                       >
                         <template #error>
                           <div class="d-flex align-center justify-center fill-height bg-grey-lighten-3">
@@ -683,6 +694,30 @@ onMounted(() => fetchHistories(1))
         @update:model-value="fetchHistories"
       />
     </div>
+
+    <!-- 이미지 미리보기 다이얼로그 (클릭 시 원본 크게 보기) -->
+    <v-dialog v-model="previewDialog" max-width="900" @click:outside="previewDialog = false">
+      <v-card>
+        <v-toolbar density="compact" color="transparent">
+          <v-spacer />
+          <v-btn icon="mdi-download" variant="text" @click="downloadImage(previewUrl)" />
+          <v-btn icon="mdi-close" variant="text" @click="previewDialog = false" />
+        </v-toolbar>
+        <v-img
+          :src="previewUrl"
+          max-height="85vh"
+          contain
+          class="rounded"
+          @click="previewDialog = false"
+        >
+          <template #error>
+            <div class="d-flex align-center justify-center fill-height bg-grey-lighten-3" style="min-height: 300px">
+              <v-icon size="64" color="grey">mdi-image-broken-variant</v-icon>
+            </div>
+          </template>
+        </v-img>
+      </v-card>
+    </v-dialog>
 
     <!-- 삭제 확인 다이얼로그 -->
     <v-dialog v-model="deleteDialog" max-width="420" persistent>
@@ -729,5 +764,8 @@ onMounted(() => fetchHistories(1))
 }
 .gap-2 {
   gap: 8px;
+}
+.cursor-zoom {
+  cursor: zoom-in;
 }
 </style>
