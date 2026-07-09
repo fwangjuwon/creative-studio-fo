@@ -1695,6 +1695,30 @@ function openPreview(url) {
             </v-card-text>
           </v-card>
 
+          <!-- 사용 용도 (이미지 사이즈) -->
+          <v-card v-if="imageSizeGroup" class="mb-4" variant="outlined">
+            <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+              <v-icon start>mdi-aspect-ratio</v-icon>
+              {{ imageSizeGroup.name }}
+              <span class="text-caption text-medium-emphasis ml-2">(선택 사항)</span>
+            </v-card-title>
+            <v-card-text>
+              <div class="d-flex flex-wrap gap-2">
+                <v-chip
+                  v-for="tag in tagsByGroup[imageSizeGroup.id]"
+                  :key="tag.id"
+                  size="large"
+                  class="cursor-pointer font-weight-bold"
+                  :color="personSelectedAspectRatio === (tag.tagValue ?? tag.name) ? 'primary' : 'default'"
+                  :variant="personSelectedAspectRatio === (tag.tagValue ?? tag.name) ? 'flat' : 'outlined'"
+                  @click="personSelectedAspectRatio = personSelectedAspectRatio === (tag.tagValue ?? tag.name) ? null : (tag.tagValue ?? tag.name)"
+                >
+                  {{ tag.name }}
+                </v-chip>
+              </div>
+            </v-card-text>
+          </v-card>
+
           <!-- ② 인원수 선택 후: 개별(Step 3,4,5) + 공통(Step 1,2) -->
           <template v-if="personCount">
 
@@ -1880,25 +1904,6 @@ function openPreview(url) {
               <span class="text-caption text-medium-emphasis ml-2">(선택 사항)</span>
             </v-card-title>
             <v-card-text>
-              <!-- 이미지 생성 목적 선택 -->
-              <template v-if="imageSizeGroup">
-                <div class="mb-4">
-                  <div class="text-subtitle-1 font-weight-bold mb-2">{{ imageSizeGroup.name }}</div>
-                  <div class="d-flex flex-wrap gap-2">
-                    <v-chip
-                      v-for="tag in tagsByGroup[imageSizeGroup.id]"
-                      :key="tag.id"
-                      size="large"
-                      class="cursor-pointer font-weight-bold"
-                      :color="personSelectedAspectRatio === (tag.tagValue ?? tag.name) ? 'primary' : 'default'"
-                      :variant="personSelectedAspectRatio === (tag.tagValue ?? tag.name) ? 'flat' : 'outlined'"
-                      @click="personSelectedAspectRatio = personSelectedAspectRatio === (tag.tagValue ?? tag.name) ? null : (tag.tagValue ?? tag.name)"
-                    >
-                      {{ tag.name }}
-                    </v-chip>
-                  </div>
-                </div>
-              </template>
               <!-- 2명 이상 선택 시: 인물 간 관계 입력 -->
               <v-text-field
                 v-if="personCount >= 2"
