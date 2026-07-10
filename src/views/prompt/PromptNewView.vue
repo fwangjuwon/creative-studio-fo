@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onActivated, watch, inject } from 'vue'
+import { ref, computed, toRef, onMounted, onActivated, onUnmounted, watch, inject } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/api'
 import { usePromptRestoreStore } from '@/stores/promptRestore'
@@ -89,6 +89,15 @@ onActivated(async () => {
 
   fetchTagGroups()
   if (activeTab.value === 'person') fetchPersonSteps()
+})
+
+// PromptNewView는 <keep-alive>로 캐시되므로 일반적인 화면 이동은 onDeactivated만 거치고
+// 여기까지 오지 않는다 — 로그아웃/새로고침 등 레이아웃 자체가 파괴되는 드문 경로에서만 호출된다.
+// 각 reset* 함수가 이미 자신의 미리보기 objectURL을 해제하므로 그대로 재사용한다.
+onUnmounted(() => {
+  resetProduct()
+  resetPerson()
+  resetFusion()
 })
 
 watch(selectedLcs, async (val) => {
@@ -229,8 +238,6 @@ const copied = ref(false)
 const generatedGoodsImageUrls = ref([])
 const generatingGoodsImage = ref(false)
 const goodsImageErrorMessage = ref('')
-const goodsReferenceImage = ref(null)       // File 객체
-const goodsReferenceImagePreview = ref('')  // ObjectURL (미리보기)
 const goodsGeneratedAspectRatio = ref('1:1')  // 이미지 생성 시점에 캡처한 종횡비
 
 const goodsImageAspectRatioValue = computed(() => parseAspectRatio(goodsGeneratedAspectRatio.value))
@@ -238,7 +245,11 @@ const goodsImageAspectRatioValue = computed(() => parseAspectRatio(goodsGenerate
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp']
 const MAX_IMAGE_SIZE_MB = 15
-const goodsReferenceImageError = ref('')
+const MAX_REFERENCE_IMAGES = 3
+// 참조 이미지 슬롯 (폴더가 달라도 한 장씩 개별 첨부 가능하도록 슬롯을 분리)
+const goodsReferenceImageSlots = ref(
+  Array.from({ length: MAX_REFERENCE_IMAGES }, () => ({ file: null, preview: '', error: '', inputKey: 0 })),
+)
 
 // ───────────────────────────────────────────────
 // Tab 1 텍스트 오버레이 (선택 사항) — 문구만 입력, AI가 분위기에 맞게 자동 처리
@@ -251,27 +262,45 @@ const goodsDisclaimerText  = ref('')
 // 공통 유틸 함수
 // ───────────────────────────────────────────────
 
-/** 이미지 파일 검증 + ref 갱신 공통 헬퍼 */
-function validateAndSetImage(file, { fileRef, previewRef, errorRef, keyRef }) {
-  errorRef.value = ''
-  if (!file) { fileRef.value = null; previewRef.value = ''; return }
+/** 이미지 파일 유효성 검사 (형식/확장자/용량). 문제 없으면 null 반환 */
+function getImageValidationError(file) {
   if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-    errorRef.value = `이미지 파일만 첨부할 수 있습니다. (허용: ${ALLOWED_IMAGE_EXTENSIONS.join(', ')})`
-    fileRef.value = null; previewRef.value = ''; keyRef.value++; return
+    return `이미지 파일만 첨부할 수 있습니다. (허용: ${ALLOWED_IMAGE_EXTENSIONS.join(', ')})`
   }
   const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
   if (!ALLOWED_IMAGE_EXTENSIONS.includes(ext)) {
-    errorRef.value = `허용되지 않는 확장자입니다. (허용: ${ALLOWED_IMAGE_EXTENSIONS.join(', ')})`
-    fileRef.value = null; previewRef.value = ''; keyRef.value++; return
+    return `허용되지 않는 확장자입니다. (허용: ${ALLOWED_IMAGE_EXTENSIONS.join(', ')})`
   }
   const sizeMB = file.size / (1024 * 1024)
   if (sizeMB > MAX_IMAGE_SIZE_MB) {
-    errorRef.value = `파일 크기가 너무 큽니다. (최대 ${MAX_IMAGE_SIZE_MB}MB, 현재 ${sizeMB.toFixed(1)}MB)`
+    return `파일 크기가 너무 큽니다. (최대 ${MAX_IMAGE_SIZE_MB}MB, 현재 ${sizeMB.toFixed(1)}MB)`
+  }
+  return null
+}
+
+/** 이미지 파일 검증 + ref 갱신 공통 헬퍼 */
+function validateAndSetImage(file, { fileRef, previewRef, errorRef, keyRef }) {
+  errorRef.value = ''
+  if (previewRef.value) URL.revokeObjectURL(previewRef.value)
+  if (!file) { fileRef.value = null; previewRef.value = ''; return }
+  const error = getImageValidationError(file)
+  if (error) {
+    errorRef.value = error
     fileRef.value = null; previewRef.value = ''; keyRef.value++; return
   }
-  if (previewRef.value) URL.revokeObjectURL(previewRef.value)
   fileRef.value = file
   previewRef.value = URL.createObjectURL(file)
+}
+
+/** 참조 이미지 슬롯 하나에 파일 검증 + 반영 (슬롯 단위라 폴더가 달라도 한 장씩 첨부 가능) */
+function onGoodsReferenceImageSlotChange(idx, file) {
+  const slot = goodsReferenceImageSlots.value[idx]
+  validateAndSetImage(file, {
+    fileRef: toRef(slot, 'file'),
+    previewRef: toRef(slot, 'preview'),
+    errorRef: toRef(slot, 'error'),
+    keyRef: toRef(slot, 'inputKey'),
+  })
 }
 
 /** 종횡비 문자열("16:9" 등)을 숫자 비율로 변환 */
@@ -356,13 +385,6 @@ function onRegenerate() {
   onGeneratePrompt(generatedStyle.value || 'NANO_BANANA')
 }
 
-function onGoodsReferenceImageChange(file) {
-  validateAndSetImage(file, {
-    fileRef: goodsReferenceImage, previewRef: goodsReferenceImagePreview,
-    errorRef: goodsReferenceImageError, keyRef: fileInputKey,
-  })
-}
-
 async function generateGoodsImage() {
   if (!generatedPrompt.value) return
   generatingGoodsImage.value = true
@@ -379,8 +401,8 @@ async function generateGoodsImage() {
     if (goodsGeneratedAspectRatio.value) {
       formData.append('imageAspectRatio', goodsGeneratedAspectRatio.value)
     }
-    if (goodsReferenceImage.value) {
-      formData.append('referenceImage', goodsReferenceImage.value)
+    for (const slot of goodsReferenceImageSlots.value) {
+      if (slot.file) formData.append('referenceImages', slot.file)
     }
 
     const res = await api.post('/prompts/goods/generate-image', formData, {
@@ -884,7 +906,6 @@ async function generatePersonPrompt(promptStyle = 'NANO_BANANA') {
 // ───────────────────────────────────────────────
 // 초기화
 // ───────────────────────────────────────────────
-const fileInputKey = ref(0)        // 상품 v-file-input 강제 리렌더링용
 const personFileInputKey = ref(0)  // 인물 v-file-input 강제 리렌더링용
 
 function resetProduct() {
@@ -901,9 +922,13 @@ function resetProduct() {
   generatedPrompt.value = ''
   generatedStyle.value = ''
   goodsPromptHistoryId.value = null
-  goodsReferenceImage.value = null
-  goodsReferenceImagePreview.value = ''
-  goodsReferenceImageError.value = ''
+  for (const slot of goodsReferenceImageSlots.value) {
+    if (slot.preview) URL.revokeObjectURL(slot.preview)
+    slot.file = null
+    slot.preview = ''
+    slot.error = ''
+    slot.inputKey++   // file input 초기화
+  }
   generatedGoodsImageUrls.value = []
   errorMessage.value = ''
   goodsImageErrorMessage.value = ''
@@ -911,7 +936,6 @@ function resetProduct() {
   goodsTextContent.value = ''
   goodsDisclaimerStyle.value = false
   goodsDisclaimerText.value = ''
-  fileInputKey.value++   // file input 초기화
 }
 
 function resetPerson() {
@@ -933,6 +957,7 @@ function resetPerson() {
   personSelectedAspectRatio.value = null
   personGeneratedAspectRatio.value = '1:1'
   personReferenceImage.value = null
+  if (personReferenceImagePreview.value) URL.revokeObjectURL(personReferenceImagePreview.value)
   personReferenceImagePreview.value = ''
   personReferenceImageError.value = ''
   personTextContent.value = ''
@@ -1335,35 +1360,39 @@ function openPreview(url) {
             <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
               <v-icon start>mdi-image-plus</v-icon>
               참조 이미지
-              <span class="text-caption text-medium-emphasis ml-2">(선택 사항)</span>
+              <span class="text-caption text-medium-emphasis ml-2">(선택 사항, 최대 {{ MAX_REFERENCE_IMAGES }}장)</span>
             </v-card-title>
             <v-card-text>
-              <v-file-input
-                :key="fileInputKey"
-                label="이미지 첨부 (jpg, jpeg, png, webp · 최대 15MB)"
-                accept=".jpg,.jpeg,.png,.webp"
-                prepend-icon="mdi-image-plus"
-                variant="outlined"
-                density="comfortable"
-                hide-details
-                clearable
-                @update:model-value="onGoodsReferenceImageChange"
-              />
-              <v-alert
-                v-if="goodsReferenceImageError"
-                type="error"
-                variant="tonal"
-                density="compact"
-                class="mt-2"
-                closable
-                @click:close="goodsReferenceImageError = ''"
-              >{{ goodsReferenceImageError }}</v-alert>
-              <div v-if="goodsReferenceImagePreview" class="mt-3 text-center">
-                <img
-                  :src="goodsReferenceImagePreview"
-                  style="max-width: 100%; max-height: 160px; border-radius: 6px; border: 1px solid #e0e0e0;"
-                  alt="참조 이미지 미리보기"
-                />
+              <div class="d-flex flex-column" style="gap: 12px;">
+                <div v-for="(slot, idx) in goodsReferenceImageSlots" :key="idx">
+                  <v-file-input
+                    :key="slot.inputKey"
+                    :label="`이미지 ${idx + 1} (jpg, png, webp · 최대 15MB)`"
+                    accept=".jpg,.jpeg,.png,.webp"
+                    prepend-icon="mdi-image-plus"
+                    variant="outlined"
+                    density="comfortable"
+                    hide-details
+                    clearable
+                    @update:model-value="(file) => onGoodsReferenceImageSlotChange(idx, file)"
+                  />
+                  <v-alert
+                    v-if="slot.error"
+                    type="error"
+                    variant="tonal"
+                    density="compact"
+                    class="mt-2"
+                    closable
+                    @click:close="slot.error = ''"
+                  >{{ slot.error }}</v-alert>
+                  <div v-if="slot.preview" class="mt-2 text-center">
+                    <img
+                      :src="slot.preview"
+                      style="max-width: 100%; max-height: 140px; border-radius: 6px; border: 1px solid #e0e0e0;"
+                      alt="참조 이미지 미리보기"
+                    />
+                  </div>
+                </div>
               </div>
             </v-card-text>
           </v-card>
@@ -1666,6 +1695,30 @@ function openPreview(url) {
             </v-card-text>
           </v-card>
 
+          <!-- 사용 용도 (이미지 사이즈) -->
+          <v-card v-if="imageSizeGroup" class="mb-4" variant="outlined">
+            <v-card-title class="text-subtitle-1 font-weight-bold pa-4 pb-2">
+              <v-icon start>mdi-aspect-ratio</v-icon>
+              {{ imageSizeGroup.name }}
+              <span class="text-caption text-medium-emphasis ml-2">(선택 사항)</span>
+            </v-card-title>
+            <v-card-text>
+              <div class="d-flex flex-wrap gap-2">
+                <v-chip
+                  v-for="tag in tagsByGroup[imageSizeGroup.id]"
+                  :key="tag.id"
+                  size="large"
+                  class="cursor-pointer font-weight-bold"
+                  :color="personSelectedAspectRatio === (tag.tagValue ?? tag.name) ? 'primary' : 'default'"
+                  :variant="personSelectedAspectRatio === (tag.tagValue ?? tag.name) ? 'flat' : 'outlined'"
+                  @click="personSelectedAspectRatio = personSelectedAspectRatio === (tag.tagValue ?? tag.name) ? null : (tag.tagValue ?? tag.name)"
+                >
+                  {{ tag.name }}
+                </v-chip>
+              </div>
+            </v-card-text>
+          </v-card>
+
           <!-- ② 인원수 선택 후: 개별(Step 3,4,5) + 공통(Step 1,2) -->
           <template v-if="personCount">
 
@@ -1851,25 +1904,6 @@ function openPreview(url) {
               <span class="text-caption text-medium-emphasis ml-2">(선택 사항)</span>
             </v-card-title>
             <v-card-text>
-              <!-- 이미지 생성 목적 선택 -->
-              <template v-if="imageSizeGroup">
-                <div class="mb-4">
-                  <div class="text-subtitle-1 font-weight-bold mb-2">{{ imageSizeGroup.name }}</div>
-                  <div class="d-flex flex-wrap gap-2">
-                    <v-chip
-                      v-for="tag in tagsByGroup[imageSizeGroup.id]"
-                      :key="tag.id"
-                      size="large"
-                      class="cursor-pointer font-weight-bold"
-                      :color="personSelectedAspectRatio === (tag.tagValue ?? tag.name) ? 'primary' : 'default'"
-                      :variant="personSelectedAspectRatio === (tag.tagValue ?? tag.name) ? 'flat' : 'outlined'"
-                      @click="personSelectedAspectRatio = personSelectedAspectRatio === (tag.tagValue ?? tag.name) ? null : (tag.tagValue ?? tag.name)"
-                    >
-                      {{ tag.name }}
-                    </v-chip>
-                  </div>
-                </div>
-              </template>
               <!-- 2명 이상 선택 시: 인물 간 관계 입력 -->
               <v-text-field
                 v-if="personCount >= 2"
