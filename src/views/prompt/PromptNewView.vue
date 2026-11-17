@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import api from '@/api'
 import { usePromptRestoreStore } from '@/stores/promptRestore'
 import { useEscClose } from '@/composables/useEscClose'
+import NsmallGoodsImagePicker from '@/components/prompt/NsmallGoodsImagePicker.vue'
 
 // keep-alive(`<keep-alive include="PromptNewView">`) 매칭이 빌드 환경의 name 추론에
 // 의존하지 않도록 컴포넌트 name을 명시한다. 누락 시 캐시가 안 되어 onActivated가
@@ -301,6 +302,15 @@ function onGoodsReferenceImageSlotChange(idx, file) {
     errorRef: toRef(slot, 'error'),
     keyRef: toRef(slot, 'inputKey'),
   })
+}
+
+function onNsmallImageSelected({ file, productName, goodsCd }) {
+  const index = goodsReferenceImageSlots.value.findIndex(slot => !slot.file)
+  if (index < 0) return
+  onGoodsReferenceImageSlotChange(index, file)
+  if (!productAdditionalNotes.value?.trim()) {
+    productAdditionalNotes.value = `상품명: ${productName} (상품번호 ${goodsCd}). 참조 이미지 속 실제 상품의 형태, 색상, 포장을 유지해 주세요.`
+  }
 }
 
 /** 종횡비 문자열("16:9" 등)을 숫자 비율로 변환 */
@@ -1363,10 +1373,15 @@ function openPreview(url) {
               <span class="text-caption text-medium-emphasis ml-2">(선택 사항, 최대 {{ MAX_REFERENCE_IMAGES }}장)</span>
             </v-card-title>
             <v-card-text>
+              <NsmallGoodsImagePicker
+                :available-slots="goodsReferenceImageSlots.filter(slot => !slot.file).length"
+                @select="onNsmallImageSelected"
+              />
               <div class="d-flex flex-column" style="gap: 12px;">
                 <div v-for="(slot, idx) in goodsReferenceImageSlots" :key="idx">
                   <v-file-input
                     :key="slot.inputKey"
+                    :model-value="slot.file"
                     :label="`이미지 ${idx + 1} (jpg, png, webp · 최대 15MB)`"
                     accept=".jpg,.jpeg,.png,.webp"
                     prepend-icon="mdi-image-plus"
